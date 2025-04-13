@@ -4,68 +4,115 @@
   <meta charset="UTF-8" />
   <title>Незаполненные дни и проекты</title>
   <style>
-    .skeleton {
-      display: inline-block;
-      height: 32px;
-      width: 100px;
-      margin: 5px;
-      background: linear-gradient(90deg, #eee 25%, #ddd 50%, #eee 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.2s infinite;
-      border-radius: 6px;
-    }
+   /* Общий стиль */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #fff;
+  color: #222;
+  font-size: 16px;
+  line-height: 1.4;
+}
 
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
+h2, h3 {
+  margin: 0 0 16px;
+  font-weight: 600;
+}
 
-    .loading-text {
-      font-style: italic;
-      opacity: 0.7;
-      animation: pulse 1s infinite;
-    }
+/* Кнопки */
+button {
+  display: inline-block;
+  padding: 10px 16px;
+  margin: 6px 4px;
+  background-color: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
 
-    @keyframes pulse {
-      0%, 100% { opacity: 0.3; }
-      50% { opacity: 1; }
-    }
+button:hover {
+  background-color: #005fcc;
+}
 
-    label {
-      display: block;
-      margin: 8px 0 4px;
-    }
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
-    input {
-      margin-bottom: 12px;
-    }
+/* Инпуты */
+input[type="number"] {
+  width: 100%;
+  padding: 8px 12px;
+  margin-top: 4px;
+  margin-bottom: 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
 
-    button {
-      margin: 6px;
-    }
+/* Лейблы */
+label {
+  display: block;
+  margin-bottom: 8px;
+}
 
-    #modal, #finalModal {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.5);
-      display: none;
-      align-items: center;
-      justify-content: center;
-    }
+/* Skeleton */
+.skeleton {
+  display: inline-block;
+  height: 32px;
+  width: 100px;
+  margin: 5px;
+  background: linear-gradient(90deg, #eee 25%, #ddd 50%, #eee 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 6px;
+}
 
-    .modal-content {
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      text-align: center;
-      max-width: 300px;
-      font-size: 16px;
-    }
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 
-    .modal-content button {
-      margin-top: 16px;
-    }
+.loading-text {
+  font-style: italic;
+  opacity: 0.7;
+  animation: pulse 1s infinite;
+  margin-top: 12px;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+/* Модалки */
+#modal,
+#finalModal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-content {
+  background: #fff;
+  padding: 24px;
+  border-radius: 16px;
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
   </style>
 </head>
 <body>
