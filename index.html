@@ -178,7 +178,7 @@ label {
         result.innerHTML = '<h3>Выбери день:</h3>';
         data.unfilled_dates.forEach(date => {
           const btn = document.createElement('button');
-          btn.textContent = date;
+          btn.textContent = formatDate(date);
           btn.onclick = () => renderFormForDay(date);
           result.appendChild(btn);
         });
@@ -190,8 +190,7 @@ label {
     function renderFormForDay(day) {
       selectedDay = day;
       const form = document.getElementById('formBlock');
-      form.innerHTML = `<h3>Заполнить часы на ${day}</h3>`;
-
+      form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
       activeProjects.forEach(project => {
         const label = document.createElement('label');
         label.textContent = project.project_name || project.name || 'Без названия';
@@ -276,6 +275,18 @@ label {
 
     function closeApp() {
       tg.close();
+    }
+
+    function formatDate(dateString) {
+      const months = [
+          'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+          'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+                    ];
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day} ${month} ${year} г.`;
     }
 
     if (telegram_id !== '—') {
