@@ -6,20 +6,25 @@
 </head>
 <body>
   <h2>Введите ваше имя:</h2>
+
+  <p>Ваш Telegram ID: <span id="userIdDisplay">Загрузка...</span></p>
+
   <form id="nameForm">
     <input type="text" id="nameInput" placeholder="Ваше имя" required>
     <button type="submit">Отправить имя</button>
   </form>
 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const tg = window.Telegram.WebApp;
-    tg.expand(); // раскрыть WebApp на весь экран
+    tg.expand();
+
+    const telegram_id = tg.initDataUnsafe?.user?.id || 'Не удалось получить ID';
+    document.getElementById('userIdDisplay').textContent = telegram_id;
 
     document.getElementById('nameForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const name = document.getElementById('nameInput').value;
-      const telegram_id = tg.initDataUnsafe.user.id;
 
       await fetch('https://n8n-твоя-ссылка/webhook/telegram-name', {
         method: 'POST',
@@ -27,9 +32,8 @@
         body: JSON.stringify({ telegram_id, name })
       });
 
-      tg.close(); // закрыть WebApp после отправки
+      tg.close();
     });
   </script>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 </html>
