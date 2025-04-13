@@ -8,6 +8,7 @@
   <h2>Ваш Telegram ID: <span id="userIdDisplay">—</span></h2>
 
   <div id="result" style="margin-top: 20px;"></div>
+  <div id="formBlock" style="margin-top: 20px;"></div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -15,6 +16,8 @@
     tg.expand();
 
     let telegram_id = '—';
+    let activeProjects = [];
+    let selectedDay = null;
 
     try {
       telegram_id = tg?.initDataUnsafe?.user?.id || '—';
@@ -34,21 +37,71 @@
       const data = await res.json();
       const resultBlock = document.getElementById('result');
       resultBlock.innerHTML = '';
+      activeProjects = data.active_projects || [];
 
-      // Незаполненные дни
       if (data.unfilled_dates?.length) {
-        const dayList = data.unfilled_dates.map(date => `<li>${date}</li>`).join('');
-        resultBlock.innerHTML += `<h3>Незаполненные дни:</h3><ul>${dayList}</ul>`;
+        resultBlock.innerHTML += `<h3>Выбери день:</h3>`;
+        data.unfilled_dates.forEach(date => {
+          const btn = document.createElement('button');
+          btn.textContent = date;
+          btn.onclick = () => renderFormForDay(date);
+          resultBlock.appendChild(btn);
+        });
       } else {
         resultBlock.innerHTML += `<p>Все дни заполнены 🎉</p>`;
       }
+    }
 
-      // Активные проекты
-      if (data.active_projects?.length) {
-        const projectList = data.active_projects.map(p => `<li>${p.project_name || p.name || 'Без названия'}</li>`).join('');
-        resultBlock.innerHTML += `<h3>Активные проекты:</h3><ul>${projectList}</ul>`;
+    function renderFormForDay(day) {
+      selectedDay = day;
+      const formBlock = document.getElementById('formBlock');
+      formBlock.innerHTML = `<h3>Заполнить часы на ${day}</h3>`;
+      
+      activeProjects.forEach(project => {
+        const label = document.createElement('label');
+        label.textContent = project.project_name || project.name || 'Без названия';
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.name = project.id;
+        input.min = 0;
+        input.max = 24;
+        input.placeholder = 'Часы';
+        label.appendChild(input);
+        formBlock.appendChild(label);
+        formBlock.appendChild(document.createElement('br'));
+      });
+
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Сохранить';
+      submitBtn.onclick = submitForm;
+      formBlock.appendChild(submitBtn);
+    }
+
+    async function submitForm() {
+      const inputs = document.querySelectorAll('#formBlock input');
+      const payload = {
+        telegram_id,
+        date: selectedDay,
+        hours: Array.from(inputs).map(input => ({
+          project_id: input.name,
+          value: Number(input.value || 0)
+        }))
+      };
+
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/submit-hours', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        alert(`Часы за ${selectedDay} успешно записаны`);
+        await loadUserData(); // перезагрузка данных
+        document.getElementById('formBlock').innerHTML = ''; // очистить форму
       } else {
-        resultBlock.innerHTML += `<p>Нет активных проектов</p>`;
+        alert('Ошибка при сохранении');
       }
     }
 
