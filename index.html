@@ -7,7 +7,7 @@
 <body>
   <h2>Введите ваше имя:</h2>
 
-  <p>Ваш Telegram ID: <span id="userIdDisplay">Загрузка...</span></p>
+  <p>Ваш Telegram ID: <span id="userIdDisplay">—</span></p>
 
   <form id="nameForm">
     <input type="text" id="nameInput" placeholder="Ваше имя" required>
@@ -19,7 +19,14 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const telegram_id = tg.initDataUnsafe?.user?.id || 'Не удалось получить ID';
+    let telegram_id = '—';
+
+    try {
+      telegram_id = tg?.initDataUnsafe?.user?.id || '—';
+    } catch (err) {
+      console.warn('Telegram ID недоступен', err);
+    }
+
     document.getElementById('userIdDisplay').textContent = telegram_id;
 
     document.getElementById('nameForm').addEventListener('submit', async (e) => {
