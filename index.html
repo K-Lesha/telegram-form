@@ -1,8 +1,49 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Незаполненные дни и проекты</title>
+  <style>
+    .skeleton {
+      display: inline-block;
+      height: 32px;
+      width: 100px;
+      margin: 5px;
+      background: linear-gradient(90deg, #eee 25%, #ddd 50%, #eee 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 6px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .loading-text {
+      font-style: italic;
+      opacity: 0.7;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+
+    label {
+      display: block;
+      margin: 8px 0 4px;
+    }
+
+    input {
+      margin-bottom: 12px;
+    }
+
+    button {
+      margin: 6px;
+    }
+  </style>
 </head>
 <body>
   <h2>Ваш Telegram ID: <span id="userIdDisplay">—</span></h2>
@@ -27,7 +68,19 @@
 
     document.getElementById('userIdDisplay').textContent = telegram_id;
 
+    function showSkeleton() {
+      const result = document.getElementById('result');
+      result.innerHTML = '<h3>Загрузка...</h3>';
+      for (let i = 0; i < 3; i++) {
+        const s = document.createElement('div');
+        s.className = 'skeleton';
+        result.appendChild(s);
+      }
+    }
+
     async function loadUserData() {
+      showSkeleton();
+
       const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,58 +88,68 @@
       });
 
       const data = await res.json();
-      const resultBlock = document.getElementById('result');
-      resultBlock.innerHTML = '';
+      const result = document.getElementById('result');
+      result.innerHTML = '';
       activeProjects = data.active_projects || [];
 
       if (data.unfilled_dates?.length) {
-        resultBlock.innerHTML += `<h3>Выбери день:</h3>`;
+        result.innerHTML = '<h3>Выбери день:</h3>';
         data.unfilled_dates.forEach(date => {
           const btn = document.createElement('button');
           btn.textContent = date;
           btn.onclick = () => renderFormForDay(date);
-          resultBlock.appendChild(btn);
+          result.appendChild(btn);
         });
       } else {
-        resultBlock.innerHTML += `<p>Все дни заполнены 🎉</p>`;
+        result.innerHTML = '<p>Все дни заполнены 🎉</p>';
       }
     }
 
     function renderFormForDay(day) {
       selectedDay = day;
-      const formBlock = document.getElementById('formBlock');
-      formBlock.innerHTML = `<h3>Заполнить часы на ${day}</h3>`;
-      
+      const form = document.getElementById('formBlock');
+      form.innerHTML = `<h3>Заполнить часы на ${day}</h3>`;
+
       activeProjects.forEach(project => {
         const label = document.createElement('label');
         label.textContent = project.project_name || project.name || 'Без названия';
+
         const input = document.createElement('input');
         input.type = 'number';
         input.name = project.id;
         input.min = 0;
         input.max = 24;
         input.placeholder = 'Часы';
+
         label.appendChild(input);
-        formBlock.appendChild(label);
-        formBlock.appendChild(document.createElement('br'));
+        form.appendChild(label);
       });
 
       const submitBtn = document.createElement('button');
       submitBtn.textContent = 'Сохранить';
-      submitBtn.onclick = submitForm;
-      formBlock.appendChild(submitBtn);
+      submitBtn.onclick = () => submitForm(submitBtn);
+      form.appendChild(submitBtn);
     }
 
-    async function submitForm() {
-      const inputs = document.querySelectorAll('#formBlock input');
+    async function submitForm(button) {
+      const form = document.getElementById('formBlock');
+      const inputs = form.querySelectorAll('input');
       const payload = {
         telegram_id,
         date: selectedDay,
-        hours: Array.from(inputs).map(input => ({
-          project_id: input.name,
-          value: Number(input.value || 0)
+        hours: Array.from(inputs).map(i => ({
+          project_id: i.name,
+          value: Number(i.value || 0)
         }))
       };
+
+      button.disabled = true;
+      button.textContent = 'Сохраняем...';
+
+      const loader = document.createElement('p');
+      loader.className = 'loading-text';
+      loader.textContent = 'Сохраняем данные...';
+      form.appendChild(loader);
 
       const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
         method: 'POST',
@@ -96,10 +159,14 @@
 
       const result = await res.json();
 
+      form.removeChild(loader);
+      button.disabled = false;
+      button.textContent = 'Сохранить';
+
       if (result.success) {
         alert(`Часы за ${selectedDay} успешно записаны`);
-        await loadUserData(); // перезагрузка данных
-        document.getElementById('formBlock').innerHTML = ''; // очистить форму
+        form.innerHTML = '';
+        await loadUserData();
       } else {
         alert('Ошибка при сохранении');
       }
