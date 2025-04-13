@@ -43,6 +43,30 @@
     button {
       margin: 6px;
     }
+
+    /* Модальное окно */
+    #modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modalContent {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 300px;
+      font-size: 16px;
+    }
+
+    #modalContent button {
+      margin-top: 16px;
+    }
   </style>
 </head>
 <body>
@@ -50,6 +74,14 @@
 
   <div id="result" style="margin-top: 20px;"></div>
   <div id="formBlock" style="margin-top: 20px;"></div>
+
+  <!-- Модальное окно -->
+  <div id="modal">
+    <div id="modalContent">
+      <p>Все дни уже заполнены 🎉</p>
+      <button onclick="closeApp()">ОК</button>
+    </div>
+  </div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -101,7 +133,7 @@
           result.appendChild(btn);
         });
       } else {
-        result.innerHTML = '<p>Все дни заполнены 🎉</p>';
+        showModal(); // показать окно при пустом списке
       }
     }
 
@@ -170,6 +202,14 @@
       } else {
         alert('Ошибка при сохранении');
       }
+    }
+
+    function showModal() {
+      document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeApp() {
+      tg.close();
     }
 
     if (telegram_id !== '—') {
