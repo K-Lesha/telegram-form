@@ -33,7 +33,7 @@
       e.preventDefault();
       const name = document.getElementById('nameInput').value;
 
-      await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/receive-from-web-app', {
+      await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/get-unfilled-days', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id, name })
