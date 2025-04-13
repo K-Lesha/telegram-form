@@ -44,8 +44,7 @@
       margin: 6px;
     }
 
-    /* Модальное окно */
-    #modal {
+    #modal, #finalModal {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
@@ -55,7 +54,7 @@
       justify-content: center;
     }
 
-    #modalContent {
+    .modal-content {
       background: #fff;
       padding: 20px;
       border-radius: 12px;
@@ -64,7 +63,7 @@
       font-size: 16px;
     }
 
-    #modalContent button {
+    .modal-content button {
       margin-top: 16px;
     }
   </style>
@@ -75,10 +74,18 @@
   <div id="result" style="margin-top: 20px;"></div>
   <div id="formBlock" style="margin-top: 20px;"></div>
 
-  <!-- Модальное окно -->
+  <!-- Модальное окно при запуске, если все дни заполнены -->
   <div id="modal">
-    <div id="modalContent">
+    <div class="modal-content">
       <p>Все дни уже заполнены 🎉</p>
+      <button onclick="closeApp()">ОК</button>
+    </div>
+  </div>
+
+  <!-- Финальное модальное окно после заполнения последнего дня -->
+  <div id="finalModal">
+    <div class="modal-content">
+      <p>За этот день часы заполнены.<br><strong>Все дни заполнены 🎉</strong></p>
       <button onclick="closeApp()">ОК</button>
     </div>
   </div>
@@ -133,7 +140,7 @@
           result.appendChild(btn);
         });
       } else {
-        showModal(); // показать окно при пустом списке
+        showModal();
       }
     }
 
@@ -196,9 +203,21 @@
       button.textContent = 'Сохранить';
 
       if (result.success) {
-        alert(`Часы за ${selectedDay} успешно записаны`);
-        form.innerHTML = '';
-        await loadUserData();
+        // проверить, остались ли ещё незаполненные дни
+        const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id })
+        });
+        const fresh = await check.json();
+
+        if (!fresh.unfilled_dates?.length) {
+          showFinalModal();
+        } else {
+          alert(`Часы за ${selectedDay} успешно записаны`);
+          form.innerHTML = '';
+          await loadUserData();
+        }
       } else {
         alert('Ошибка при сохранении');
       }
@@ -206,6 +225,10 @@
 
     function showModal() {
       document.getElementById('modal').style.display = 'flex';
+    }
+
+    function showFinalModal() {
+      document.getElementById('finalModal').style.display = 'flex';
     }
 
     function closeApp() {
