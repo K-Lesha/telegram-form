@@ -2,17 +2,12 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Укажи своё имя</title>
+  <title>Незаполненные дни и проекты</title>
 </head>
 <body>
-  <h2>Введите ваше имя:</h2>
+  <h2>Ваш Telegram ID: <span id="userIdDisplay">—</span></h2>
 
-  <p>Ваш Telegram ID: <span id="userIdDisplay">—</span></p>
-
-  <form id="nameForm">
-    <input type="text" id="nameInput" placeholder="Ваше имя" required>
-    <button type="submit">Отправить имя</button>
-  </form>
+  <div id="result" style="margin-top: 20px;"></div>
 
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
@@ -29,18 +24,37 @@
 
     document.getElementById('userIdDisplay').textContent = telegram_id;
 
-    document.getElementById('nameForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const name = document.getElementById('nameInput').value;
-
-      await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/get-unfilled-days', {
+    async function loadUserData() {
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/get-unfilled-days', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegram_id, name })
+        body: JSON.stringify({ telegram_id })
       });
 
-      tg.close();
-    });
+      const data = await res.json();
+      const resultBlock = document.getElementById('result');
+      resultBlock.innerHTML = '';
+
+      // Незаполненные дни
+      if (data.unfilled_dates?.length) {
+        const dayList = data.unfilled_dates.map(date => `<li>${date}</li>`).join('');
+        resultBlock.innerHTML += `<h3>Незаполненные дни:</h3><ul>${dayList}</ul>`;
+      } else {
+        resultBlock.innerHTML += `<p>Все дни заполнены 🎉</p>`;
+      }
+
+      // Активные проекты
+      if (data.active_projects?.length) {
+        const projectList = data.active_projects.map(p => `<li>${p.project_name || p.name || 'Без названия'}</li>`).join('');
+        resultBlock.innerHTML += `<h3>Активные проекты:</h3><ul>${projectList}</ul>`;
+      } else {
+        resultBlock.innerHTML += `<p>Нет активных проектов</p>`;
+      }
+    }
+
+    if (telegram_id !== '—') {
+      loadUserData();
+    }
   </script>
 </body>
 </html>
