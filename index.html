@@ -275,19 +275,21 @@ function renderFormForDay(day) {
     title.style.marginRight = '12px';
     container.appendChild(title);
 
-const selectTimeBtn = document.createElement('button');
-selectTimeBtn.textContent = 'Указать время';
-selectTimeBtn.disabled = false; // <—— гарантируем, что кнопка включена
-selectTimeBtn.onclick = () => openTimePicker(project.id, container);
-container.appendChild(selectTimeBtn);
+    const selectTimeBtn = document.createElement('button');
+    selectTimeBtn.textContent = 'Указать время';
+    selectTimeBtn.className = 'select-time-btn'; // ← важный фикс: добавляем уникальный класс
+    selectTimeBtn.disabled = false;
+    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+    container.appendChild(selectTimeBtn);
+
     form.appendChild(container);
   });
 
- const submitBtn = document.createElement('button');
-submitBtn.textContent = 'Сохранить';
-submitBtn.disabled = true; // сначала выключена
-submitBtn.onclick = () => submitForm(submitBtn);
-form.appendChild(submitBtn);
+  const submitBtn = document.createElement('button');
+  submitBtn.textContent = 'Сохранить';
+  submitBtn.disabled = true;
+  submitBtn.onclick = () => submitForm(submitBtn);
+  form.appendChild(submitBtn);
 }
 
 async function submitForm(button) {
@@ -376,27 +378,26 @@ async function submitForm(button) {
         modal.style.display = 'none';
         const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
 
-        // вставим результат в контейнер
-// Удаляем кнопку "Указать время", если есть
-const existingBtn = container.querySelector('button');
-if (existingBtn) existingBtn.remove();
+        // Удаляем кнопку "Указать время" только внутри текущего проекта
+        const existingBtn = container.querySelector('.select-time-btn');
+        if (existingBtn) existingBtn.remove();
 
-// Удаляем предыдущее отображение, если есть
-const existingTime = container.querySelector('.time-display');
-if (existingTime) existingTime.remove();
+        // Удаляем старый вывод времени, если был
+        const existingTime = container.querySelector('.time-display');
+        if (existingTime) existingTime.remove();
 
-// Показываем новое значение
-const span = document.createElement('span');
-span.className = 'time-display';
-span.style.marginLeft = '12px';
-span.textContent = display;
-container.appendChild(span);
+        // Показываем выбранное время
+        const span = document.createElement('span');
+        span.className = 'time-display';
+        span.style.marginLeft = '12px';
+        span.textContent = display;
+        container.appendChild(span);
 
-        // сохраним в dataset
+        // Сохраняем в dataset
         container.dataset.hours = selectedHours;
         container.dataset.minutes = min;
 
-        checkFormValidity(); // <—— добавляем вызов
+        checkFormValidity();
       };
       content.appendChild(btn);
     });
