@@ -277,8 +277,7 @@ function renderFormForDay(day) {
 
     const selectTimeBtn = document.createElement('button');
     selectTimeBtn.textContent = 'Указать время';
-    selectTimeBtn.className = 'select-time-btn'; // ← важный фикс: добавляем уникальный класс
-    selectTimeBtn.disabled = false;
+    selectTimeBtn.className = 'select-time-btn';
     selectTimeBtn.onclick = () => openTimePicker(project.id, container);
     container.appendChild(selectTimeBtn);
 
@@ -287,6 +286,7 @@ function renderFormForDay(day) {
 
   const submitBtn = document.createElement('button');
   submitBtn.textContent = 'Сохранить';
+  submitBtn.id = 'saveButton'; // лучше использовать id
   submitBtn.disabled = true;
   submitBtn.onclick = () => submitForm(submitBtn);
   form.appendChild(submitBtn);
@@ -359,9 +359,13 @@ async function submitForm(button) {
     function openTimePicker(projectId, container) {
   const modal = document.getElementById('timePickerModal');
   const content = document.getElementById('timePickerContent');
-  modal.style.display = 'flex';
 
+  // ⛔️ Защита от повторного открытия
+  if (modal.style.display === 'flex') return;
+
+  modal.style.display = 'flex';
   content.innerHTML = '<h3>Сколько часов?</h3>';
+
   for (let i = 0; i <= 8; i++) {
     const btn = document.createElement('button');
     btn.textContent = i;
@@ -376,17 +380,17 @@ async function submitForm(button) {
       btn.textContent = min;
       btn.onclick = () => {
         modal.style.display = 'none';
-        const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
 
-        // Удаляем кнопку "Указать время" только внутри текущего проекта
-        const existingBtn = container.querySelector('.select-time-btn');
-        if (existingBtn) existingBtn.remove();
+        // Удаляем только кнопку внутри текущего контейнера
+        const timeBtn = container.querySelector('.select-time-btn');
+        if (timeBtn) timeBtn.remove();
 
-        // Удаляем старый вывод времени, если был
+        // Удаляем старое отображение времени
         const existingTime = container.querySelector('.time-display');
         if (existingTime) existingTime.remove();
 
         // Показываем выбранное время
+        const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
         const span = document.createElement('span');
         span.className = 'time-display';
         span.style.marginLeft = '12px';
@@ -404,10 +408,10 @@ async function submitForm(button) {
   }
 }
 
-    function checkFormValidity() {
+function checkFormValidity() {
   const form = document.getElementById('formBlock');
   const containers = form.querySelectorAll('[data-project-id]');
-  const submitBtn = form.querySelector('button:last-of-type');
+  const submitBtn = document.getElementById('saveButton');
 
   const allFilled = Array.from(containers).every(c =>
     c.dataset.hours !== undefined && c.dataset.minutes !== undefined
