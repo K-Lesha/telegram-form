@@ -223,82 +223,157 @@
     }
 
     function renderFormForDay(day) {
-      selectedDay = day;
-      const form = document.getElementById('formBlock');
-      form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
-      activeProjects.forEach(project => {
-        const label = document.createElement('label');
-        label.textContent = project.project_name || project.name || 'Без названия';
+  selectedDay = day;
+  const form = document.getElementById('formBlock');
+  form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
 
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.name = project.id;
-        input.min = 0;
-        input.max = 24;
-        input.placeholder = 'Часы';
+  activeProjects.forEach(project => {
+    const container = document.createElement('div');
+    container.style.marginBottom = '20px';
 
-        label.appendChild(input);
-        form.appendChild(label);
-      });
+    const title = document.createElement('div');
+    title.textContent = project.project_name || project.name || 'Без названия';
+    title.style.marginBottom = '8px';
+    container.appendChild(title);
 
-      const submitBtn = document.createElement('button');
-      submitBtn.textContent = 'Сохранить';
-      submitBtn.onclick = () => submitForm(submitBtn);
-      form.appendChild(submitBtn);
-    }
+    // Часы
+    const hoursBlock = document.createElement('div');
+    hoursBlock.style.marginBottom = '6px';
+
+    const hoursLabel = document.createElement('span');
+    hoursLabel.textContent = 'Часы: ';
+    const hoursValue = document.createElement('span');
+    hoursValue.textContent = '0';
+    hoursValue.dataset.type = 'hours';
+    hoursValue.dataset.projectId = project.id;
+
+    const hoursDec = document.createElement('button');
+    hoursDec.textContent = '−';
+    hoursDec.onclick = () => {
+      let val = parseInt(hoursValue.textContent);
+      if (val > 0) val -= 1;
+      hoursValue.textContent = val;
+    };
+
+    const hoursInc = document.createElement('button');
+    hoursInc.textContent = '+';
+    hoursInc.onclick = () => {
+      let val = parseInt(hoursValue.textContent);
+      if (val < 24) val += 1;
+      hoursValue.textContent = val;
+    };
+
+    hoursBlock.appendChild(hoursLabel);
+    hoursBlock.appendChild(hoursDec);
+    hoursBlock.appendChild(hoursValue);
+    hoursBlock.appendChild(hoursInc);
+
+    // Минуты
+    const minutesBlock = document.createElement('div');
+
+    const minutesLabel = document.createElement('span');
+    minutesLabel.textContent = 'Минуты: ';
+    const minutesValue = document.createElement('span');
+    minutesValue.textContent = '0';
+    minutesValue.dataset.type = 'minutes';
+    minutesValue.dataset.projectId = project.id;
+
+    const minutesDec = document.createElement('button');
+    minutesDec.textContent = '−';
+    minutesDec.onclick = () => {
+      let val = parseInt(minutesValue.textContent);
+      val = (val - 15 + 60) % 60;
+      minutesValue.textContent = val;
+    };
+
+    const minutesInc = document.createElement('button');
+    minutesInc.textContent = '+';
+    minutesInc.onclick = () => {
+      let val = parseInt(minutesValue.textContent);
+      val = (val + 15) % 60;
+      minutesValue.textContent = val;
+    };
+
+    minutesBlock.appendChild(minutesLabel);
+    minutesBlock.appendChild(minutesDec);
+    minutesBlock.appendChild(minutesValue);
+    minutesBlock.appendChild(minutesInc);
+
+    container.appendChild(hoursBlock);
+    container.appendChild(minutesBlock);
+    form.appendChild(container);
+  });
+
+  const submitBtn = document.createElement('button');
+  submitBtn.textContent = 'Сохранить';
+  submitBtn.onclick = () => submitForm(submitBtn);
+  form.appendChild(submitBtn);
+}
 
     async function submitForm(button) {
-      const form = document.getElementById('formBlock');
-      const inputs = form.querySelectorAll('input');
-      const payload = {
-        telegram_id,
-        date: selectedDay,
-        hours: Array.from(inputs).map(i => ({
-          project_id: i.name,
-          value: Number(i.value || 0)
-        }))
-      };
+  const form = document.getElementById('formBlock');
+  const hours = Array.from(form.querySelectorAll('[data-type="hours"]')).map(h => {
+    const projectId = h.dataset.projectId;
+    const hour = parseInt(h.textContent);
+    const minutes = parseInt(form.querySelector(`[data-type="minutes"][data-project-id="${projectId}"]`).textContent);
+    return {
+      project_id: projectId,
+      value: hour + minutes / 60
+    };
+  });
 
-      button.disabled = true;
-      button.textContent = 'Сохраняем...';
+  const payload = {
+    telegram_id,
+    date: selectedDay,
+    hours
+  };
 
-      const loader = document.createElement('p');
-      loader.className = 'loading-text';
-      loader.textContent = 'Сохраняем данные...';
-      form.appendChild(loader);
+  button.disabled = true;
+  button.textContent = 'Сохраняем...';
 
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
+  const loader = document.createElement('p');
+  loader.className = 'loading-text';
+  loader.textContent = 'Сохраняем данные...';
+  form.appendChild(loader);
 
-      const result = await res.json();
+  const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
 
-      form.removeChild(loader);
-      button.disabled = false;
-      button.textContent = 'Сохранить';
+  const result = await res.json();
 
-      if (result.success) {
-        // проверить, остались ли ещё незаполненные дни
-        const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_id })
-        });
-        const fresh = await check.json();
+  if (result.success) {
+    const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id })
+    });
 
-        if (!fresh.unfilled_dates?.length) {
-          showFinalModal();
-        } else {
-          alert(`Часы за ${selectedDay} успешно записаны`);
-          form.innerHTML = '';
-          await loadUserData();
-        }
-      } else {
-        alert('Ошибка при сохранении');
-      }
+    const fresh = await check.json();
+
+    // Показываем alert до удаления лоадера
+    alert(`Часы за ${selectedDay} успешно записаны`);
+
+    // Только после alert убираем загрузку
+    form.removeChild(loader);
+    button.disabled = false;
+    button.textContent = 'Сохранить';
+
+    if (!fresh.unfilled_dates?.length) {
+      showFinalModal();
+    } else {
+      form.innerHTML = '';
+      await loadUserData();
     }
+  } else {
+    alert('Ошибка при сохранении');
+    form.removeChild(loader);
+    button.disabled = false;
+    button.textContent = 'Сохранить';
+  }
+}
 
     function showModal() {
       document.getElementById('modal').style.display = 'flex';
