@@ -275,11 +275,10 @@ function renderFormForDay(day) {
     title.style.marginRight = '12px';
     container.appendChild(title);
 
-    const selectTimeBtn = document.createElement('button');
-    selectTimeBtn.textContent = 'Указать время';
-    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
-    container.appendChild(selectTimeBtn);
-
+const selectTimeBtn = document.createElement('button');
+selectTimeBtn.textContent = 'Указать время';
+selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+container.appendChild(selectTimeBtn);
     form.appendChild(container);
   });
 
@@ -377,16 +376,20 @@ async function submitForm(button) {
         const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
 
         // вставим результат в контейнер
-        const existing = container.querySelector('.time-display');
-        if (existing) {
-          existing.textContent = display;
-        } else {
-          const span = document.createElement('span');
-          span.className = 'time-display';
-          span.style.marginLeft = '12px';
-          span.textContent = display;
-          container.appendChild(span);
-        }
+// Удаляем кнопку "Указать время", если есть
+const existingBtn = container.querySelector('button');
+if (existingBtn) existingBtn.remove();
+
+// Удаляем предыдущее отображение, если есть
+const existingTime = container.querySelector('.time-display');
+if (existingTime) existingTime.remove();
+
+// Показываем новое значение
+const span = document.createElement('span');
+span.className = 'time-display';
+span.style.marginLeft = '12px';
+span.textContent = display;
+container.appendChild(span);
 
         // сохраним в dataset
         container.dataset.hours = selectedHours;
