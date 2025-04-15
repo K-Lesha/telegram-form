@@ -277,6 +277,7 @@ function renderFormForDay(day) {
 
 const selectTimeBtn = document.createElement('button');
 selectTimeBtn.textContent = 'Указать время';
+selectTimeBtn.disabled = false; // <—— гарантируем, что кнопка включена
 selectTimeBtn.onclick = () => openTimePicker(project.id, container);
 container.appendChild(selectTimeBtn);
     form.appendChild(container);
