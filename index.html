@@ -87,6 +87,38 @@
       50% { opacity: 1; }
     }
 
+    #timePickerModal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 101;
+}
+
+.modal-inner {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 280px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.modal-inner h3 {
+  margin-bottom: 16px;
+}
+
+.modal-inner button {
+  margin: 6px;
+  padding: 10px 14px;
+  font-size: 16px;
+}
+
     #modal,
     #finalModal {
       position: fixed;
@@ -154,6 +186,10 @@
   <div id="result" style="margin-top: 20px;"></div>
   <div id="formBlock" style="margin-top: 20px;"></div>
 
+  <div id="timePickerModal" style="display: none;">
+    <div class="modal-inner" id="timePickerContent"></div>
+  </div>
+  
   <!-- Модальное окно при запуске, если все дни заполнены -->
   <div id="modal">
     <div class="modal-content">
@@ -222,7 +258,7 @@
       }
     }
 
-    function renderFormForDay(day) {
+function renderFormForDay(day) {
   selectedDay = day;
   const form = document.getElementById('formBlock');
   form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
@@ -230,95 +266,40 @@
   activeProjects.forEach(project => {
     const container = document.createElement('div');
     container.style.marginBottom = '20px';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.dataset.projectId = project.id;
 
     const title = document.createElement('div');
     title.textContent = project.project_name || project.name || 'Без названия';
-    title.style.marginBottom = '8px';
+    title.style.marginRight = '12px';
     container.appendChild(title);
 
-    // Часы
-    const hoursBlock = document.createElement('div');
-    hoursBlock.style.marginBottom = '6px';
+    const selectTimeBtn = document.createElement('button');
+    selectTimeBtn.textContent = 'Указать время';
+    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+    container.appendChild(selectTimeBtn);
 
-    const hoursLabel = document.createElement('span');
-    hoursLabel.textContent = 'Часы: ';
-    const hoursValue = document.createElement('span');
-    hoursValue.textContent = '0';
-    hoursValue.dataset.type = 'hours';
-    hoursValue.dataset.projectId = project.id;
-
-    const hoursDec = document.createElement('button');
-    hoursDec.textContent = '−';
-    hoursDec.onclick = () => {
-      let val = parseInt(hoursValue.textContent);
-      if (val > 0) val -= 1;
-      hoursValue.textContent = val;
-    };
-
-    const hoursInc = document.createElement('button');
-    hoursInc.textContent = '+';
-    hoursInc.onclick = () => {
-      let val = parseInt(hoursValue.textContent);
-      if (val < 24) val += 1;
-      hoursValue.textContent = val;
-    };
-
-    hoursBlock.appendChild(hoursLabel);
-    hoursBlock.appendChild(hoursDec);
-    hoursBlock.appendChild(hoursValue);
-    hoursBlock.appendChild(hoursInc);
-
-    // Минуты
-    const minutesBlock = document.createElement('div');
-
-    const minutesLabel = document.createElement('span');
-    minutesLabel.textContent = 'Минуты: ';
-    const minutesValue = document.createElement('span');
-    minutesValue.textContent = '0';
-    minutesValue.dataset.type = 'minutes';
-    minutesValue.dataset.projectId = project.id;
-
-    const minutesDec = document.createElement('button');
-    minutesDec.textContent = '−';
-    minutesDec.onclick = () => {
-      let val = parseInt(minutesValue.textContent);
-      val = (val - 15 + 60) % 60;
-      minutesValue.textContent = val;
-    };
-
-    const minutesInc = document.createElement('button');
-    minutesInc.textContent = '+';
-    minutesInc.onclick = () => {
-      let val = parseInt(minutesValue.textContent);
-      val = (val + 15) % 60;
-      minutesValue.textContent = val;
-    };
-
-    minutesBlock.appendChild(minutesLabel);
-    minutesBlock.appendChild(minutesDec);
-    minutesBlock.appendChild(minutesValue);
-    minutesBlock.appendChild(minutesInc);
-
-    container.appendChild(hoursBlock);
-    container.appendChild(minutesBlock);
     form.appendChild(container);
   });
 
-  const submitBtn = document.createElement('button');
-  submitBtn.textContent = 'Сохранить';
-  submitBtn.onclick = () => submitForm(submitBtn);
-  form.appendChild(submitBtn);
+ const submitBtn = document.createElement('button');
+submitBtn.textContent = 'Сохранить';
+submitBtn.disabled = true; // сначала выключена
+submitBtn.onclick = () => submitForm(submitBtn);
+form.appendChild(submitBtn);
 }
 
-    async function submitForm(button) {
+async function submitForm(button) {
   const form = document.getElementById('formBlock');
-  const hours = Array.from(form.querySelectorAll('[data-type="hours"]')).map(h => {
-    const projectId = h.dataset.projectId;
-    const hour = parseInt(h.textContent);
-    const minutes = parseInt(form.querySelector(`[data-type="minutes"][data-project-id="${projectId}"]`).textContent);
+  const hours = Array.from(form.querySelectorAll('[data-project-id]')).map(container => {
+    const projectId = container.dataset.projectId;
+    const h = parseInt(container.dataset.hours || 0);
+    const m = parseInt(container.dataset.minutes || 0);
+
     return {
       project_id: projectId,
-      value: hour + minutes / 60
+      value: h + m / 60
     };
   });
 
@@ -353,10 +334,8 @@
 
     const fresh = await check.json();
 
-    // Показываем alert до удаления лоадера
     alert(`Часы за ${selectedDay} успешно записаны`);
 
-    // Только после alert убираем загрузку
     form.removeChild(loader);
     button.disabled = false;
     button.textContent = 'Сохранить';
@@ -373,6 +352,63 @@
     button.disabled = false;
     button.textContent = 'Сохранить';
   }
+}
+
+    function openTimePicker(projectId, container) {
+  const modal = document.getElementById('timePickerModal');
+  const content = document.getElementById('timePickerContent');
+  modal.style.display = 'flex';
+
+  content.innerHTML = '<h3>Сколько часов?</h3>';
+  for (let i = 1; i <= 8; i++) {
+    const btn = document.createElement('button');
+    btn.textContent = i;
+    btn.onclick = () => chooseMinutes(i);
+    content.appendChild(btn);
+  }
+
+  function chooseMinutes(selectedHours) {
+    content.innerHTML = '<h3>Сколько минут?</h3>';
+    [0, 15, 30, 45].forEach(min => {
+      const btn = document.createElement('button');
+      btn.textContent = min;
+      btn.onclick = () => {
+        modal.style.display = 'none';
+        const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
+
+        // вставим результат в контейнер
+        const existing = container.querySelector('.time-display');
+        if (existing) {
+          existing.textContent = display;
+        } else {
+          const span = document.createElement('span');
+          span.className = 'time-display';
+          span.style.marginLeft = '12px';
+          span.textContent = display;
+          container.appendChild(span);
+        }
+
+        // сохраним в dataset
+        container.dataset.hours = selectedHours;
+        container.dataset.minutes = min;
+
+        checkFormValidity(); // <—— добавляем вызов
+      };
+      content.appendChild(btn);
+    });
+  }
+}
+
+    function checkFormValidity() {
+  const form = document.getElementById('formBlock');
+  const containers = form.querySelectorAll('[data-project-id]');
+  const submitBtn = form.querySelector('button:last-of-type');
+
+  const allFilled = Array.from(containers).every(c =>
+    c.dataset.hours !== undefined && c.dataset.minutes !== undefined
+  );
+
+  submitBtn.disabled = !allFilled;
 }
 
     function showModal() {
