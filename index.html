@@ -265,29 +265,35 @@ function renderFormForDay(day) {
 
   activeProjects.forEach(project => {
     const container = document.createElement('div');
-    container.style.marginBottom = '20px';
+    container.style.marginBottom = '16px';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
+    container.style.justifyContent = 'space-between';
     container.dataset.projectId = project.id;
 
+    // Название проекта (жирным)
     const title = document.createElement('div');
     title.textContent = project.project_name || project.name || 'Без названия';
+    title.style.fontWeight = '600';
     title.style.marginRight = '12px';
     container.appendChild(title);
 
+    // Кнопка "Указать время"
     const selectTimeBtn = document.createElement('button');
     selectTimeBtn.textContent = 'Указать время';
+    selectTimeBtn.style.whiteSpace = 'nowrap';
+    selectTimeBtn.style.minWidth = '130px';
     selectTimeBtn.onclick = () => openTimePicker(project.id, container);
     container.appendChild(selectTimeBtn);
 
     form.appendChild(container);
   });
 
- const submitBtn = document.createElement('button');
-submitBtn.textContent = 'Сохранить';
-submitBtn.disabled = true; // сначала выключена
-submitBtn.onclick = () => submitForm(submitBtn);
-form.appendChild(submitBtn);
+  const submitBtn = document.createElement('button');
+  submitBtn.textContent = 'Сохранить';
+  submitBtn.disabled = true;
+  submitBtn.onclick = () => submitForm(submitBtn);
+  form.appendChild(submitBtn);
 }
 
 async function submitForm(button) {
@@ -360,42 +366,60 @@ async function submitForm(button) {
   modal.style.display = 'flex';
 
   content.innerHTML = '<h3>Сколько часов?</h3>';
+
+  const hoursWrapper = document.createElement('div');
+  hoursWrapper.style.display = 'flex';
+  hoursWrapper.style.flexWrap = 'wrap';
+  hoursWrapper.style.justifyContent = 'center';
+  hoursWrapper.style.gap = '8px';
+
   for (let i = 1; i <= 8; i++) {
     const btn = document.createElement('button');
     btn.textContent = i;
+    btn.style.flex = '1 0 30%';
     btn.onclick = () => chooseMinutes(i);
-    content.appendChild(btn);
+    hoursWrapper.appendChild(btn);
   }
+
+  content.appendChild(hoursWrapper);
 
   function chooseMinutes(selectedHours) {
     content.innerHTML = '<h3>Сколько минут?</h3>';
+
+    const minutesWrapper = document.createElement('div');
+    minutesWrapper.style.display = 'flex';
+    minutesWrapper.style.justifyContent = 'center';
+    minutesWrapper.style.gap = '8px';
+
     [0, 15, 30, 45].forEach(min => {
       const btn = document.createElement('button');
       btn.textContent = min;
+      btn.style.flex = '1 0 30%';
       btn.onclick = () => {
         modal.style.display = 'none';
-        const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
 
-        // вставим результат в контейнер
-        const existing = container.querySelector('.time-display');
-        if (existing) {
-          existing.textContent = display;
-        } else {
-          const span = document.createElement('span');
-          span.className = 'time-display';
-          span.style.marginLeft = '12px';
-          span.textContent = display;
-          container.appendChild(span);
-        }
+        // Удалить кнопку, если есть
+        const oldBtn = container.querySelector('button');
+        if (oldBtn) container.removeChild(oldBtn);
 
-        // сохраним в dataset
+        // Показать выбранное время
+        const timeDisplay = document.createElement('span');
+        timeDisplay.className = 'time-display';
+        timeDisplay.style.marginLeft = '12px';
+        timeDisplay.style.fontWeight = '500';
+        timeDisplay.textContent = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
+        container.appendChild(timeDisplay);
+
+        // Сохраняем в dataset
         container.dataset.hours = selectedHours;
         container.dataset.minutes = min;
 
-        checkFormValidity(); // <—— добавляем вызов
+        checkFormValidity();
       };
-      content.appendChild(btn);
+      minutesWrapper.appendChild(btn);
     });
+
+    content.appendChild(minutesWrapper);
   }
 }
 
