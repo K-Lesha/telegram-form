@@ -43,6 +43,12 @@
       cursor: default;
     }
 
+    /* Новое правило для кнопки "Указать время" */
+    .select-time-btn {
+      max-width: 80px;
+      width: 80px;
+    }
+
     input[type="number"] {
       width: 100%;
       padding: 8px 12px;
@@ -88,36 +94,36 @@
     }
 
     #timePickerModal {
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 101;
-}
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 101;
+    }
 
-.modal-inner {
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px;
-  max-width: 280px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
+    .modal-inner {
+      background: #fff;
+      border-radius: 16px;
+      padding: 24px;
+      max-width: 280px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    }
 
-.modal-inner h3 {
-  margin-bottom: 16px;
-}
+    .modal-inner h3 {
+      margin-bottom: 16px;
+    }
 
-.modal-inner button {
-  margin: 6px;
-  padding: 10px 14px;
-  font-size: 16px;
-}
+    .modal-inner button {
+      margin: 6px;
+      padding: 10px 14px;
+      font-size: 16px;
+    }
 
     #modal,
     #finalModal {
@@ -258,167 +264,166 @@
       }
     }
 
-function renderFormForDay(day) {
-  selectedDay = day;
-  const form = document.getElementById('formBlock');
-  form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
+    function renderFormForDay(day) {
+      selectedDay = day;
+      const form = document.getElementById('formBlock');
+      form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
 
-  activeProjects.forEach(project => {
-    const container = document.createElement('div');
-    container.style.marginBottom = '20px';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.dataset.projectId = project.id;
+      activeProjects.forEach(project => {
+        const container = document.createElement('div');
+        container.style.marginBottom = '20px';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.dataset.projectId = project.id;
 
-    const title = document.createElement('div');
-    title.textContent = project.project_name || project.name || 'Без названия';
-    title.style.marginRight = '12px';
-    container.appendChild(title);
+        const title = document.createElement('div');
+        title.textContent = project.project_name || project.name || 'Без названия';
+        title.style.marginRight = '12px';
+        container.appendChild(title);
 
-    const selectTimeBtn = document.createElement('button');
-    selectTimeBtn.textContent = 'Указать время';
-    selectTimeBtn.className = 'select-time-btn';
-    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
-    container.appendChild(selectTimeBtn);
+        // Создаём элемент для отображения времени с дефолтным значением "00ч00м"
+        const timeDisplay = document.createElement('span');
+        timeDisplay.className = 'time-display';
+        timeDisplay.style.marginRight = '12px';
+        timeDisplay.textContent = "00ч00м";
+        container.appendChild(timeDisplay);
 
-    form.appendChild(container);
-  });
+        // Кнопка для указания времени с ограничением по ширине
+        const selectTimeBtn = document.createElement('button');
+        selectTimeBtn.textContent = 'Указать время';
+        selectTimeBtn.className = 'select-time-btn';
+        selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+        container.appendChild(selectTimeBtn);
 
-  const submitBtn = document.createElement('button');
-  submitBtn.textContent = 'Сохранить';
-  submitBtn.id = 'saveButton'; // лучше использовать id
-  submitBtn.disabled = true;
-  submitBtn.onclick = () => submitForm(submitBtn);
-  form.appendChild(submitBtn);
-}
+        form.appendChild(container);
+      });
 
-async function submitForm(button) {
-  const form = document.getElementById('formBlock');
-  const hours = Array.from(form.querySelectorAll('[data-project-id]')).map(container => {
-    const projectId = container.dataset.projectId;
-    const h = parseInt(container.dataset.hours || 0);
-    const m = parseInt(container.dataset.minutes || 0);
-
-    return {
-      project_id: projectId,
-      value: h + m / 60
-    };
-  });
-
-  const payload = {
-    telegram_id,
-    date: selectedDay,
-    hours
-  };
-
-  button.disabled = true;
-  button.textContent = 'Сохраняем...';
-
-  const loader = document.createElement('p');
-  loader.className = 'loading-text';
-  loader.textContent = 'Сохраняем данные...';
-  form.appendChild(loader);
-
-  const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const result = await res.json();
-
-  if (result.success) {
-    const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id })
-    });
-
-    const fresh = await check.json();
-
-    alert(`Часы за ${selectedDay} успешно записаны`);
-
-    form.removeChild(loader);
-    button.disabled = false;
-    button.textContent = 'Сохранить';
-
-    if (!fresh.unfilled_dates?.length) {
-      showFinalModal();
-    } else {
-      form.innerHTML = '';
-      await loadUserData();
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Сохранить';
+      submitBtn.id = 'saveButton';
+      submitBtn.disabled = true;
+      submitBtn.onclick = () => submitForm(submitBtn);
+      form.appendChild(submitBtn);
     }
-  } else {
-    alert('Ошибка при сохранении');
-    form.removeChild(loader);
-    button.disabled = false;
-    button.textContent = 'Сохранить';
-  }
-}
+
+    async function submitForm(button) {
+      const form = document.getElementById('formBlock');
+      const hours = Array.from(form.querySelectorAll('[data-project-id]')).map(container => {
+        const projectId = container.dataset.projectId;
+        const h = parseInt(container.dataset.hours || 0);
+        const m = parseInt(container.dataset.minutes || 0);
+
+        return {
+          project_id: projectId,
+          value: h + m / 60
+        };
+      });
+
+      const payload = {
+        telegram_id,
+        date: selectedDay,
+        hours
+      };
+
+      button.disabled = true;
+      button.textContent = 'Сохраняем...';
+
+      const loader = document.createElement('p');
+      loader.className = 'loading-text';
+      loader.textContent = 'Сохраняем данные...';
+      form.appendChild(loader);
+
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+
+      if (result.success) {
+        const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id })
+        });
+
+        const fresh = await check.json();
+
+        alert(`Часы за ${selectedDay} успешно записаны`);
+
+        form.removeChild(loader);
+        button.disabled = false;
+        button.textContent = 'Сохранить';
+
+        if (!fresh.unfilled_dates?.length) {
+          showFinalModal();
+        } else {
+          form.innerHTML = '';
+          await loadUserData();
+        }
+      } else {
+        alert('Ошибка при сохранении');
+        form.removeChild(loader);
+        button.disabled = false;
+        button.textContent = 'Сохранить';
+      }
+    }
 
     function openTimePicker(projectId, container) {
-  const modal = document.getElementById('timePickerModal');
-  const content = document.getElementById('timePickerContent');
+      const modal = document.getElementById('timePickerModal');
+      const content = document.getElementById('timePickerContent');
 
-  // ⛔️ Защита от повторного открытия
-  if (modal.style.display === 'flex') return;
+      // ⛔️ Защита от повторного открытия
+      if (modal.style.display === 'flex') return;
 
-  modal.style.display = 'flex';
-  content.innerHTML = '<h3>Сколько часов?</h3>';
+      modal.style.display = 'flex';
+      content.innerHTML = '<h3>Сколько часов?</h3>';
 
-  for (let i = 0; i <= 8; i++) {
-    const btn = document.createElement('button');
-    btn.textContent = i;
-    btn.onclick = () => chooseMinutes(i);
-    content.appendChild(btn);
-  }
+      for (let i = 0; i <= 8; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.onclick = () => chooseMinutes(i);
+        content.appendChild(btn);
+      }
 
-  function chooseMinutes(selectedHours) {
-    content.innerHTML = '<h3>Сколько минут?</h3>';
-    [0, 15, 30, 45].forEach(min => {
-      const btn = document.createElement('button');
-      btn.textContent = min;
-      btn.onclick = () => {
-        modal.style.display = 'none';
+      function chooseMinutes(selectedHours) {
+        content.innerHTML = '<h3>Сколько минут?</h3>';
+        [0, 15, 30, 45].forEach(min => {
+          const btn = document.createElement('button');
+          btn.textContent = min;
+          btn.onclick = () => {
+            modal.style.display = 'none';
 
-        // Удаляем только кнопку внутри текущего контейнера
-        const timeBtn = container.querySelector('.select-time-btn');
-        if (timeBtn) timeBtn.remove();
+            // Вместо удаления кнопки обновляем текст в элементе отображения времени
+            const timeDisplay = container.querySelector('.time-display');
+            if (timeDisplay) {
+              const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
+              timeDisplay.textContent = display;
+            }
 
-        // Удаляем старое отображение времени
-        const existingTime = container.querySelector('.time-display');
-        if (existingTime) existingTime.remove();
+            // Сохраняем выбранное время в dataset контейнера
+            container.dataset.hours = selectedHours;
+            container.dataset.minutes = min;
 
-        // Показываем выбранное время
-        const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
-        const span = document.createElement('span');
-        span.className = 'time-display';
-        span.style.marginLeft = '12px';
-        span.textContent = display;
-        container.appendChild(span);
+            checkFormValidity();
+          };
+          content.appendChild(btn);
+        });
+      }
+    }
 
-        // Сохраняем в dataset
-        container.dataset.hours = selectedHours;
-        container.dataset.minutes = min;
+    function checkFormValidity() {
+      const form = document.getElementById('formBlock');
+      const containers = form.querySelectorAll('[data-project-id]');
+      const submitBtn = document.getElementById('saveButton');
 
-        checkFormValidity();
-      };
-      content.appendChild(btn);
-    });
-  }
-}
+      const allFilled = Array.from(containers).every(c =>
+        c.dataset.hours !== undefined && c.dataset.minutes !== undefined
+      );
 
-function checkFormValidity() {
-  const form = document.getElementById('formBlock');
-  const containers = form.querySelectorAll('[data-project-id]');
-  const submitBtn = document.getElementById('saveButton');
-
-  const allFilled = Array.from(containers).every(c =>
-    c.dataset.hours !== undefined && c.dataset.minutes !== undefined
-  );
-
-  submitBtn.disabled = !allFilled;
-}
+      submitBtn.disabled = !allFilled;
+    }
 
     function showModal() {
       document.getElementById('modal').style.display = 'flex';
