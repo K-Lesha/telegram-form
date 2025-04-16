@@ -264,47 +264,60 @@
       }
     }
 
-    function renderFormForDay(day) {
-      selectedDay = day;
-      const form = document.getElementById('formBlock');
-      form.innerHTML = `<h3>Заполнить часы на ${formatDate(day)}</h3>`;
+  function renderFormForDay(day) {
+  selectedDay = day;
+  const form = document.getElementById('formBlock');
+  form.innerHTML = `<h3>Заполнить часы на 📅 ${formatDate(day)}</h3>`;
 
-      activeProjects.forEach(project => {
-        const container = document.createElement('div');
-        container.style.marginBottom = '20px';
-        container.style.display = 'flex';
-        container.style.alignItems = 'center';
-        container.dataset.projectId = project.id;
+  activeProjects.forEach(project => {
+    const container = document.createElement('div');
+    container.style.marginBottom = '20px';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.dataset.projectId = project.id;
 
-        const title = document.createElement('div');
-        title.textContent = project.project_name || project.name || 'Без названия';
-        title.style.marginRight = '12px';
-        container.appendChild(title);
+    // Название проекта с отступом
+    const title = document.createElement('div');
+    title.textContent = project.project_name || project.name || 'Без названия';
+    title.style.marginRight = '12px';
+    container.appendChild(title);
 
-        // Создаём элемент для отображения времени с дефолтным значением "00ч00м"
-        const timeDisplay = document.createElement('span');
-        timeDisplay.className = 'time-display';
-        timeDisplay.style.marginRight = '12px';
-        timeDisplay.textContent = "00ч00м";
-        container.appendChild(timeDisplay);
+    // Первый спейсер
+    const spacer1 = document.createElement('span');
+    spacer1.style.display = 'inline-block';
+    spacer1.style.width = '12px';
+    container.appendChild(spacer1);
 
-        // Кнопка для указания времени с ограничением по ширине
-        const selectTimeBtn = document.createElement('button');
-        selectTimeBtn.textContent = 'Указать время';
-        selectTimeBtn.className = 'select-time-btn';
-        selectTimeBtn.onclick = () => openTimePicker(project.id, container);
-        container.appendChild(selectTimeBtn);
+    // Отображение времени с отступом
+    const timeDisplay = document.createElement('span');
+    timeDisplay.className = 'time-display';
+    timeDisplay.textContent = "00ч00м";
+    timeDisplay.style.marginRight = '12px';
+    container.appendChild(timeDisplay);
 
-        form.appendChild(container);
-      });
+    // Второй спейсер
+    const spacer2 = document.createElement('span');
+    spacer2.style.display = 'inline-block';
+    spacer2.style.width = '12px';
+    container.appendChild(spacer2);
 
-      const submitBtn = document.createElement('button');
-      submitBtn.textContent = 'Сохранить';
-      submitBtn.id = 'saveButton';
-      submitBtn.disabled = true;
-      submitBtn.onclick = () => submitForm(submitBtn);
-      form.appendChild(submitBtn);
-    }
+    // Кнопка для указания времени
+    const selectTimeBtn = document.createElement('button');
+    selectTimeBtn.textContent = '🕐🤳🏼';
+    selectTimeBtn.className = 'select-time-btn';
+    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+    container.appendChild(selectTimeBtn);
+
+    form.appendChild(container);
+  });
+
+  const submitBtn = document.createElement('button');
+  submitBtn.textContent = '📝 Записать';
+  submitBtn.id = 'saveButton';
+  submitBtn.disabled = true;
+  submitBtn.onclick = () => submitForm(submitBtn);
+  form.appendChild(submitBtn);
+}
 
     async function submitForm(button) {
       const form = document.getElementById('formBlock');
@@ -326,11 +339,11 @@
       };
 
       button.disabled = true;
-      button.textContent = 'Сохраняем...';
+      button.textContent = 'Записываем...';
 
       const loader = document.createElement('p');
       loader.className = 'loading-text';
-      loader.textContent = 'Сохраняем данные...';
+      loader.textContent = 'Записываем данные...';
       form.appendChild(loader);
 
       const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
@@ -354,7 +367,7 @@
 
         form.removeChild(loader);
         button.disabled = false;
-        button.textContent = 'Сохранить';
+        button.textContent = '📝 Записать;
 
         if (!fresh.unfilled_dates?.length) {
           showFinalModal();
@@ -366,7 +379,7 @@
         alert('Ошибка при сохранении');
         form.removeChild(loader);
         button.disabled = false;
-        button.textContent = 'Сохранить';
+        button.textContent = '📝 Записать;
       }
     }
 
