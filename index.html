@@ -153,6 +153,16 @@
     width: 80px; /* или можно установить другую ширину, например, 100px */
   }
 
+    .skip-btn {
+  background-color: #f2f2f2;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.skip-btn:hover {
+  background-color: #e6e6e6;
+}
+
 
     #modal,
     #finalModal {
@@ -176,6 +186,18 @@
       width: 90%;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
+
+    #confirmationModal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
 
     /* Мобильная адаптация */
     @media (max-width: 480px) {
@@ -241,6 +263,16 @@
     </div>
   </div>
 
+  <!-- Модальное окно подтверждения отправки -->
+<div id="confirmationModal">
+  <div class="modal-content">
+    <h3>Подтверждение</h3>
+    <div id="confirmationList" style="text-align: left; margin-bottom: 16px;"></div>
+    <button onclick="confirmSubmit()">✅ Подтвердить</button>
+    <button onclick="closeConfirmation()">✖️ Отмена</button>
+  </div>
+</div>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     const tg = window.Telegram.WebApp;
@@ -299,24 +331,20 @@
   form.innerHTML = `<h3>Заполнить часы на 📅 ${formatDate(day)}</h3>`;
 
   activeProjects.forEach(project => {
-    // Создаем контейнер строки и задаем класс
     const container = document.createElement('div');
     container.className = 'project-row';
     container.dataset.projectId = project.id;
 
-    // Колонка для названия проекта
     const title = document.createElement('div');
     title.textContent = project.project_name || project.name || 'Без названия';
     title.className = 'project-title';
     container.appendChild(title);
 
-    // Колонка для отображения времени
     const timeDisplay = document.createElement('div');
     timeDisplay.className = 'time-display';
     timeDisplay.textContent = "00ч00м";
     container.appendChild(timeDisplay);
 
-    // Кнопка для указания времени
     const selectTimeBtn = document.createElement('button');
     selectTimeBtn.textContent = '🕐🤳🏼';
     selectTimeBtn.className = 'select-time-btn';
@@ -326,15 +354,113 @@
     form.appendChild(container);
   });
 
+  // Кнопка отправки
   const submitBtn = document.createElement('button');
   submitBtn.textContent = '📝 Записать';
   submitBtn.id = 'saveButton';
   submitBtn.disabled = true;
   submitBtn.onclick = () => submitForm(submitBtn);
   form.appendChild(submitBtn);
+
+  // Кнопка пропуска
+  const skipBtn = document.createElement('button');
+  skipBtn.textContent = '⏭ Пропустить день';
+  skipBtn.onclick = () => skipDay();
+   skipBtn.className = 'skip-btn';
+  form.appendChild(skipBtn);
 }
 
-    async function submitForm(button) {
+function submitForm(button) {
+  const form = document.getElementById('formBlock');
+  const containers = form.querySelectorAll('[data-project-id]');
+  const list = document.getElementById('confirmationList');
+  list.innerHTML = '';
+
+  let totalMinutes = 0;
+
+  containers.forEach(c => {
+    const name = c.querySelector('.project-title').textContent;
+    const hours = parseInt(c.dataset.hours || 0);
+    const minutes = parseInt(c.dataset.minutes || 0);
+    totalMinutes += hours * 60 + minutes;
+
+    const line = document.createElement('div');
+    line.textContent = `• ${name}: ${hours} ч ${minutes} мин`;
+    list.appendChild(line);
+  });
+
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  const summary = document.createElement('div');
+  summary.style.marginTop = '12px';
+  summary.style.fontWeight = 'bold';
+  summary.textContent = `🧮 Итого: ${h} ч ${m} мин`;
+  list.appendChild(summary);
+
+  document.getElementById('confirmationModal').style.display = 'flex';
+}
+async function skipDay() {
+  const form = document.getElementById('formBlock');
+
+  const hours = activeProjects.map(p => ({
+    project_id: p.id,
+    value: 0
+  }));
+
+  const payload = {
+    telegram_id,
+    date: selectedDay,
+    hours
+  };
+
+  const loader = document.createElement('p');
+  loader.className = 'loading-text';
+  loader.textContent = 'Пропускаем день...';
+  form.appendChild(loader);
+
+  const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await res.json();
+
+  if (result.success) {
+    const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id })
+    });
+
+    const fresh = await check.json();
+
+    alert(`День ${selectedDay} успешно пропущен`);
+
+    form.innerHTML = '';
+
+    if (!fresh.unfilled_dates?.length) {
+      showFinalModal();
+    } else {
+      await loadUserData();
+    }
+  } else {
+    alert('Ошибка при пропуске дня');
+    form.removeChild(loader);
+  }
+}
+
+    function confirmSubmit() {
+  document.getElementById('confirmationModal').style.display = 'none';
+  const btn = document.getElementById('saveButton');
+  finalSubmitForm(btn);
+}
+
+function closeConfirmation() {
+  document.getElementById('confirmationModal').style.display = 'none';
+}
+
+    async function finalSubmitForm(button) {
       const form = document.getElementById('formBlock');
       const hours = Array.from(form.querySelectorAll('[data-project-id]')).map(container => {
         const projectId = container.dataset.projectId;
