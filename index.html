@@ -371,9 +371,6 @@
   skipBtn.onclick = () => skipDay();
    skipBtn.className = 'skip-btn';
   form.appendChild(skipBtn);
-
-     checkFormValidity();
-
 }
 
 function submitForm(button) {
@@ -566,23 +563,10 @@ function closeConfirmation() {
             container.dataset.hours = selectedHours;
             container.dataset.minutes = min;
 
-            checkFormValidity();
           };
           content.appendChild(btn);
         });
       }
-    }
-
-    function checkFormValidity() {
-      const form = document.getElementById('formBlock');
-      const containers = form.querySelectorAll('[data-project-id]');
-      const submitBtn = document.getElementById('saveButton');
-
-      const allFilled = Array.from(containers).every(c =>
-        c.dataset.hours !== undefined && c.dataset.minutes !== undefined
-      );
-
-      submitBtn.disabled = !allFilled;
     }
 
     function showModal() {
