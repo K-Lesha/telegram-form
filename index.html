@@ -335,6 +335,9 @@
     container.className = 'project-row';
     container.dataset.projectId = project.id;
 
+    container.dataset.hours = 0;
+    container.dataset.minutes = 0;
+
     const title = document.createElement('div');
     title.textContent = project.project_name || project.name || 'Без названия';
     title.className = 'project-title';
