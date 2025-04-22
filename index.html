@@ -240,31 +240,29 @@
   </style>
 </head>
 <body>
-  <div id="result" style="margin-top: 20px;"></div>
-  <div id="formBlock" style="margin-top: 20px;"></div>
 
-  <div id="timePickerModal" style="display: none;">
+    <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
   </div>
-  
-  <!-- Модальное окно при запуске, если все дни заполнены -->
-  <div id="modal">
+
+  <div id="modal" class="modal-overlay">
     <div class="modal-content">
       <p>Все дни уже заполнены 🤝</p>
       <button onclick="closeApp()">Закрыть форму</button>
     </div>
   </div>
 
-  <!-- Финальное модальное окно после заполнения последнего дня -->
-  <div id="finalModal">
-    <div class="modal-content">
-      <p><strong>Все дни заполнены 🤝</strong></p>
-      <button onclick="closeApp()">Закрыть форму</button>
-    </div>
+  <div id="finalModal" class="modal-overlay">
+    <div class="modal-content"> … </div>
   </div>
 
+  <div id="result" style="margin-top: 20px;"></div>
+  <div id="formBlock" style="margin-top: 20px;"></div>
+
+
+
   <!-- Модальное окно подтверждения отправки -->
-<div id="confirmationModal">
+<div id="confirmationModal" class="modal-overlay">
   <div class="modal-content">
     <h3>Подтверждение</h3>
     <div id="confirmationList" style="text-align: left; margin-bottom: 16px;"></div>
@@ -596,6 +594,20 @@ function closeConfirmation() {
     if (telegram_id !== '—') {
       loadUserData();
     }
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', e => {
+        // закрываем, только если кликнули именно по фону
+        if (e.target === overlay) {
+          overlay.style.display = 'none';
+
+          // пример спец‑очистки для тайм‑пикера
+          if (overlay.id === 'timePickerModal') {
+            document.getElementById('timePickerContent').innerHTML = '';
+          }
+        }
+      });
+    });
   </script>
 </body>
 </html>
