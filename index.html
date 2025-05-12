@@ -346,7 +346,9 @@
       const data = await res.json();
       const result = document.getElementById('result');
       result.innerHTML = '';
-      activeProjects = data.active_projects || [];
+      const first = Array.isArray(data) ? data[0] : data;
+
+      activeProjects = first?.active_projects || [];
 
       if (data.unfilled_dates?.length) {
         result.innerHTML = '<h3>Выбери день:</h3>';
