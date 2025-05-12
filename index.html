@@ -241,6 +241,17 @@
 </head>
 <body>
 
+  <!-- Модалка выбора причины пропуска -->
+<div id="skipReasonModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Выбери причину пропуска</h3>
+    <button onclick="selectSkipReason('sick_leave')">🤒 Больничный</button>
+    <button onclick="selectSkipReason('day_off')">😌 Выходной</button>
+    <button onclick="selectSkipReason('vacation')">🏖 Отпуск</button>
+    <button onclick="cancelSkipReason()">Отмена</button>
+  </div>
+</div>
+
     <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
   </div>
@@ -403,8 +414,14 @@ function submitForm(button) {
 
   document.getElementById('confirmationModal').style.display = 'flex';
 }
+    
 async function skipDay() {
-  const form = document.getElementById('formBlock');
+  let reason;
+  try {
+    reason = await showSkipReasonModal();
+  } catch (e) {
+    return; // пользователь отменил
+  }
 
   const hours = activeProjects.map(p => ({
     project_id: p.id,
@@ -414,9 +431,12 @@ async function skipDay() {
   const payload = {
     telegram_id,
     date: selectedDay,
-    hours
+    hours,
+    filled: false,
+    not_filled_reason: reason
   };
 
+  const form = document.getElementById('formBlock');
   const loader = document.createElement('p');
   loader.className = 'loading-text';
   loader.textContent = 'Пропускаем день...';
@@ -431,27 +451,37 @@ async function skipDay() {
   const result = await res.json();
 
   if (result.success) {
-    const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id })
-    });
-
-    const fresh = await check.json();
-
-    alert(`День ${selectedDay} успешно пропущен`);
-
+    alert(`День ${selectedDay} успешно пропущен как ${reason}`);
     form.innerHTML = '';
-
-    if (!fresh.unfilled_dates?.length) {
-      showFinalModal();
-    } else {
-      await loadUserData();
-    }
+    await loadUserData();
   } else {
     alert('Ошибка при пропуске дня');
     form.removeChild(loader);
   }
+}
+
+    function showSkipReasonModal() {
+  return new Promise((resolve, reject) => {
+    const modal = document.getElementById('skipReasonModal');
+    modal.style.display = 'flex';
+
+    window.selectSkipReason = function (reason) {
+      modal.style.display = 'none';
+      cleanup();
+      resolve(reason);
+    };
+
+    window.cancelSkipReason = function () {
+      modal.style.display = 'none';
+      cleanup();
+      reject('cancelled');
+    };
+
+    function cleanup() {
+      delete window.selectSkipReason;
+      delete window.cancelSkipReason;
+    }
+  });
 }
 
     function confirmSubmit() {
@@ -478,9 +508,11 @@ function closeConfirmation() {
       });
 
       const payload = {
-        telegram_id,
-        date: selectedDay,
-        hours
+          telegram_id,
+          date: selectedDay,
+          hours,
+          filled: true,
+          not_filled_reason: null
       };
 
       button.disabled = true;
@@ -612,5 +644,7 @@ function closeConfirmation() {
       });
     });
   </script>
+
+  
 </body>
 </html>
