@@ -371,8 +371,7 @@
   activeProjects.forEach(project => {
     const container = document.createElement('div');
     container.className = 'project-row';
-    container.dataset.projectId = project.id;
-
+    container.dataset.projectId = project.project_id;
     container.dataset.hours = 0;
     container.dataset.minutes = 0;
 
