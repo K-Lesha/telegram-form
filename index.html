@@ -125,6 +125,18 @@
       font-size: 16px;
     }
 
+    #skipReasonModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 101;
+    }
+
       /* Новые стили для строки проекта */
   .project-row {
     display: flex;
@@ -637,6 +649,15 @@ function closeConfirmation() {
         }
       });
     });
+
+    // Закрытие модалки причины пропуска по клику по фону
+    document.getElementById('skipReasonModal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) {
+      e.currentTarget.style.display = 'none';
+      window.cancelSkipReason?.();
+      }
+    });
+    
   </script>
 
   
