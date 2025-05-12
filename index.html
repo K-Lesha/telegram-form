@@ -264,6 +264,18 @@
   </div>
 </div>
 
+  <div id="vacationDateModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Укажи даты отпуска</h3>
+    <label>Начало отпуска:</label>
+    <input type="date" id="vacationStart" />
+    <label>Конец отпуска:</label>
+    <input type="date" id="vacationEnd" />
+    <button onclick="confirmVacationDates()">✅ Подтвердить</button>
+    <button onclick="cancelVacationDates()">✖️ Отмена</button>
+  </div>
+</div>
+
     <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
   </div>
@@ -432,7 +444,35 @@ async function skipDay() {
   try {
     reason = await showSkipReasonModal();
   } catch (e) {
-    return; // пользователь отменил
+    return;
+  }
+
+  let vacationDates = null;
+
+  if (reason === 'vacation') {
+    let vacationCancelled = false;
+
+    try {
+      vacationDates = await promptVacationDates();
+    } catch (e) {
+      vacationCancelled = true;
+    }
+
+    if (vacationCancelled) {
+  // Возврат к выбору причины
+      return await skipDay(); // 👈 рекурсивный вызов — покажет модалку заново
+    }
+
+    // Запись отпуска
+    await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/add-vacation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id,
+        start_date: vacationDates.start_date,
+        end_date: vacationDates.end_date
+      })
+    });
   }
 
   const payload = {
@@ -466,6 +506,14 @@ async function skipDay() {
   }
 }
 
+  function promptVacationDates() {
+  return new Promise((resolve, reject) => {
+    window._vacationDateResolver = resolve;
+    window._vacationDateRejecter = reject;
+    document.getElementById('vacationDateModal').style.display = 'flex';
+  });
+}
+
     function showSkipReasonModal() {
   return new Promise((resolve, reject) => {
     const modal = document.getElementById('skipReasonModal');
@@ -489,6 +537,50 @@ async function skipDay() {
     }
   });
 }
+
+   window.confirmVacationDates = function () {
+  const startInput = document.getElementById('vacationStart');
+  const endInput = document.getElementById('vacationEnd');
+  const start = startInput.value;
+  const end = endInput.value;
+
+  if (!start || !end || new Date(start) > new Date(end)) {
+    alert('Проверь корректность дат');
+    return;
+  }
+
+  document.getElementById('vacationDateModal').style.display = 'none';
+  startInput.value = '';
+  endInput.value = '';
+
+  if (window._vacationDateResolver) {
+    window._vacationDateResolver({ start_date: start, end_date: end });
+    window._vacationDateResolver = null;
+    window._vacationDateRejecter = null;
+  }
+};
+
+window.cancelVacationDates = function () {
+  document.getElementById('vacationDateModal').style.display = 'none';
+  document.getElementById('vacationStart').value = '';
+  document.getElementById('vacationEnd').value = '';
+
+  if (window._vacationDateRejecter) {
+    window._vacationDateRejecter('cancelled');
+    window._vacationDateResolver = null;
+    window._vacationDateRejecter = null;
+  }
+};
+
+window.cancelVacationDates = function () {
+  document.getElementById('vacationDateModal').style.display = 'none';
+
+  if (window._vacationDateRejecter) {
+    window._vacationDateRejecter('cancelled');
+    window._vacationDateResolver = null;
+    window._vacationDateRejecter = null;
+  }
+};
 
     function confirmSubmit() {
   document.getElementById('confirmationModal').style.display = 'none';
