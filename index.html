@@ -431,7 +431,7 @@ function renderFormForDay(day) {
       archiveLabel.onclick = () => {
         const isOpen = archiveBlock.style.display === 'block';
         archiveBlock.style.display = isOpen ? 'none' : 'block';
-        archiveLabel.textContent = isOpen ? '🔽 Архив' : '▶️ Архив';
+        archiveLabel.textContent = isOpen ? '▶️ Архив' : '🔽 Архив';
       };
 
       sectionTitle.appendChild(archiveLabel);
