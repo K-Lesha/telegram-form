@@ -396,73 +396,69 @@ function renderFormForDay(day) {
   };
 
   activeProjects.forEach(project => {
-    const status = project.project_status || 'active'; // fallback
-    grouped[status]?.push(project);
+    const status = project.project_status || 'active';
+    if (grouped[status]) {
+      grouped[status].push(project);
+    }
   });
-
-  Object.entries(grouped).forEach(([status, projects]) => {
-  if (!projects.length) return;
 
   const titleMap = {
     active: '🔥 Активные проекты',
     internal: '🏢 Внутренние задачи',
-    archive: '📦 Архив'
+    archive: 'Архив' // стрелка добавляется отдельно
   };
 
-  const sectionTitle = document.createElement('h3');
-  sectionTitle.style.display = 'flex';
-  sectionTitle.style.justifyContent = 'space-between';
-  sectionTitle.style.alignItems = 'center';
+  Object.entries(grouped).forEach(([status, projects]) => {
+    if (!projects.length) return;
 
-  const label = document.createElement('span');
-  label.textContent = titleMap[status] || status;
+    const container = document.createElement('div');
+    container.style.marginBottom = '12px';
 
-  sectionTitle.appendChild(label);
+    const sectionTitle = document.createElement('h3');
+    sectionTitle.style.display = 'flex';
+    sectionTitle.style.alignItems = 'center';
+    sectionTitle.style.cursor = status === 'archive' ? 'pointer' : 'default';
 
-  let container = document.createElement('div');
-  container.style.marginBottom = '12px';
+    // Архив — особый случай
+    if (status === 'archive') {
+      const archiveLabel = document.createElement('span');
+      archiveLabel.textContent = '▶️ Архив';
+      archiveLabel.style.userSelect = 'none';
 
-  if (status === 'archive') {
-    // Кнопка для сворачивания
-    const toggleBtn = document.createElement('button');
-    toggleBtn.textContent = '▶️'; // закрыто по умолчанию
-    toggleBtn.style.fontSize = '16px';
-    toggleBtn.style.background = 'none';
-    toggleBtn.style.border = 'none';
-    toggleBtn.style.cursor = 'pointer';
-toggleBtn.style.minWidth = 'auto'; // не тянется
-toggleBtn.style.width = 'auto';    // по содержимому
-toggleBtn.style.padding = '0 4px'; // небольшой отступ по бокам
-toggleBtn.style.marginLeft = 'auto'; // 🔥 прижать вправо
-    
-    sectionTitle.appendChild(toggleBtn);
+      const archiveBlock = document.createElement('div');
+      archiveBlock.style.display = 'none';
 
-    const archiveBlock = document.createElement('div');
-    archiveBlock.style.display = 'none'; // скрыто по умолчанию
-    archiveBlock.id = 'archive-block';
+      archiveLabel.onclick = () => {
+        const isOpen = archiveBlock.style.display === 'block';
+        archiveBlock.style.display = isOpen ? 'none' : 'block';
+        archiveLabel.textContent = isOpen ? '🔽 Архив' : '▶️ Архив';
+      };
 
-    projects.forEach(project => {
-      const row = buildProjectRow(project);
-      archiveBlock.appendChild(row);
-    });
+      sectionTitle.appendChild(archiveLabel);
+      container.appendChild(sectionTitle);
 
-    container.appendChild(sectionTitle);
-    container.appendChild(archiveBlock);
-    form.appendChild(container);
+      projects.forEach(project => {
+        const row = buildProjectRow(project);
+        archiveBlock.appendChild(row);
+      });
 
-    toggleBtn.onclick = () => {
-      const isVisible = archiveBlock.style.display === 'block';
-      archiveBlock.style.display = isVisible ? 'none' : 'block';
-      toggleBtn.textContent = isVisible ? '▶️' : '🔽';
-    };
-  } else {
-    form.appendChild(sectionTitle);
-    projects.forEach(project => {
-      const row = buildProjectRow(project);
-      form.appendChild(row);
-    });
-  }
-});
+      container.appendChild(archiveBlock);
+      form.appendChild(container);
+    } else {
+      // Все остальные секции — сразу отображаются
+      const label = document.createElement('span');
+      label.textContent = titleMap[status] || status;
+      sectionTitle.appendChild(label);
+      container.appendChild(sectionTitle);
+
+      projects.forEach(project => {
+        const row = buildProjectRow(project);
+        container.appendChild(row);
+      });
+
+      form.appendChild(container);
+    }
+  });
 
   // Кнопка отправки
   const submitBtn = document.createElement('button');
