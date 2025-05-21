@@ -401,44 +401,65 @@ function renderFormForDay(day) {
   });
 
   Object.entries(grouped).forEach(([status, projects]) => {
-    if (!projects.length) return;
+  if (!projects.length) return;
 
-    const titleMap = {
-      active: '🔥 Активные проекты',
-      internal: '🏢 Внутренние задачи',
-      archive: '📦 Архив'
-    };
+  const titleMap = {
+    active: '🔥 Активные проекты',
+    internal: '🏢 Внутренние задачи',
+    archive: '📦 Архив'
+  };
 
-    const sectionTitle = document.createElement('h3');
-    sectionTitle.textContent = titleMap[status] || status;
-    form.appendChild(sectionTitle);
+  const sectionTitle = document.createElement('h3');
+  sectionTitle.style.display = 'flex';
+  sectionTitle.style.justifyContent = 'space-between';
+  sectionTitle.style.alignItems = 'center';
+
+  const label = document.createElement('span');
+  label.textContent = titleMap[status] || status;
+
+  sectionTitle.appendChild(label);
+
+  let container = document.createElement('div');
+  container.style.marginBottom = '12px';
+
+  if (status === 'archive') {
+    // Кнопка для сворачивания
+    const toggleBtn = document.createElement('button');
+    toggleBtn.textContent = '▶️'; // закрыто по умолчанию
+    toggleBtn.style.fontSize = '16px';
+    toggleBtn.style.background = 'none';
+    toggleBtn.style.border = 'none';
+    toggleBtn.style.cursor = 'pointer';
+    toggleBtn.style.marginLeft = '8px';
+
+    sectionTitle.appendChild(toggleBtn);
+
+    const archiveBlock = document.createElement('div');
+    archiveBlock.style.display = 'none'; // скрыто по умолчанию
+    archiveBlock.id = 'archive-block';
 
     projects.forEach(project => {
-      const container = document.createElement('div');
-      container.className = 'project-row';
-      container.dataset.projectId = project.project_id;
-      container.dataset.hours = 0;
-      container.dataset.minutes = 0;
-
-      const title = document.createElement('div');
-      title.textContent = project.project_name || project.name || 'Без названия';
-      title.className = 'project-title';
-      container.appendChild(title);
-
-      const timeDisplay = document.createElement('div');
-      timeDisplay.className = 'time-display';
-      timeDisplay.textContent = "00ч00м";
-      container.appendChild(timeDisplay);
-
-      const selectTimeBtn = document.createElement('button');
-      selectTimeBtn.textContent = '🕐🤳🏼';
-      selectTimeBtn.className = 'select-time-btn';
-      selectTimeBtn.onclick = () => openTimePicker(project.id, container);
-      container.appendChild(selectTimeBtn);
-
-      form.appendChild(container);
+      const row = buildProjectRow(project);
+      archiveBlock.appendChild(row);
     });
-  });
+
+    container.appendChild(sectionTitle);
+    container.appendChild(archiveBlock);
+    form.appendChild(container);
+
+    toggleBtn.onclick = () => {
+      const isVisible = archiveBlock.style.display === 'block';
+      archiveBlock.style.display = isVisible ? 'none' : 'block';
+      toggleBtn.textContent = isVisible ? '▶️' : '🔽';
+    };
+  } else {
+    form.appendChild(sectionTitle);
+    projects.forEach(project => {
+      const row = buildProjectRow(project);
+      form.appendChild(row);
+    });
+  }
+});
 
   // Кнопка отправки
   const submitBtn = document.createElement('button');
@@ -454,6 +475,32 @@ function renderFormForDay(day) {
   skipBtn.onclick = () => skipDay();
   skipBtn.className = 'skip-btn';
   form.appendChild(skipBtn);
+}
+
+    function buildProjectRow(project) {
+  const container = document.createElement('div');
+  container.className = 'project-row';
+  container.dataset.projectId = project.project_id;
+  container.dataset.hours = 0;
+  container.dataset.minutes = 0;
+
+  const title = document.createElement('div');
+  title.textContent = project.project_name || project.name || 'Без названия';
+  title.className = 'project-title';
+  container.appendChild(title);
+
+  const timeDisplay = document.createElement('div');
+  timeDisplay.className = 'time-display';
+  timeDisplay.textContent = "00ч00м";
+  container.appendChild(timeDisplay);
+
+  const selectTimeBtn = document.createElement('button');
+  selectTimeBtn.textContent = '🕐🤳🏼';
+  selectTimeBtn.className = 'select-time-btn';
+  selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+  container.appendChild(selectTimeBtn);
+
+  return container;
 }
 
 function submitForm(button) {
