@@ -65,6 +65,17 @@
       cursor: pointer;
       margin-top: 12px;
     }
+
+    #memberModal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
   </style>
 </head>
 <body>
@@ -72,8 +83,60 @@
 
   <div id="projects"></div>
 
+  <!-- Модальное окно -->
+<div id="memberModal" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+">
+  <div style="
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    position: relative;
+  ">
+    <span id="modalClose" style="
+      position: absolute;
+      top: 10px;
+      right: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+    ">&times;</span>
+    <h3>Информация об участнике</h3>
+    <p><strong>Имя:</strong> <span id="modalName"></span></p>
+    <p><strong>Активность:</strong> <span id="modalActive"></span></p>
+<p>
+  <strong>Законтрактовано часов:</strong><br />
+  <input type="number" id="modalContracted" style="width: 100%; padding: 8px;" />
+</p>
+<p>
+  <strong>Внутренний план:</strong><br />
+  <input type="number" id="modalInternal" style="width: 100%; padding: 8px;" />
+</p>
+    <p><strong>Трекнутые часы:</strong> <span id="modalTracked"></span></p>
+    <button id="saveHoursBtn">Сохранить часы</button>
+  </div>
+</div>
+
+
+  
 <script>
+
+      let currentProjectId = null;
+let currentUserId = null;
+
   async function loadProjects() {
+
+    
     try {
       const tg = window.Telegram.WebApp;
       tg.expand();
@@ -159,6 +222,15 @@
   if (member.telegram_id === userTelegramId) {
   nameSpan.textContent += ' (Вы)';
 }
+
+
+  nameSpan.style.cursor = 'pointer';
+nameSpan.style.textDecoration = 'underline';
+nameSpan.style.color = '#007aff';
+
+    nameSpan.onclick = () => {
+  showMemberModal(member, project.project_id);
+};
 
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
@@ -276,7 +348,63 @@
     }
   }
 
+function showMemberModal(member, projectId) {
+  currentProjectId = projectId;
+  currentUserId = member.user_id;
+
+  document.getElementById('modalName').textContent = member.name;
+  document.getElementById('modalActive').textContent = member.is_active ? 'Да' : 'Нет';
+  document.getElementById('modalContracted').value = member.contracted_hours || 0;
+  document.getElementById('modalInternal').value = member.internal_hours || 0;
+  document.getElementById('modalTracked').textContent = member.tracked_hours || 0;
+
+  document.getElementById('memberModal').style.display = 'flex';
+}
+
+document.getElementById('modalClose').onclick = () => {
+  document.getElementById('memberModal').style.display = 'none';
+};
+
+window.onclick = function(event) {
+  if (event.target === document.getElementById('memberModal')) {
+    document.getElementById('memberModal').style.display = 'none';
+  }
+};
+
   loadProjects();
+
+  document.getElementById('saveHoursBtn').onclick = async () => {
+  const contracted = parseFloat(document.getElementById('modalContracted').value);
+  const internal = parseFloat(document.getElementById('modalInternal').value);
+
+  const payload = {
+    project_id: currentProjectId,
+    user_id: currentUserId,
+    contracted_hours: contracted,
+    internal_hours: internal
+  };
+
+  try {
+    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/catch-member-hours', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      alert('✅ Часы обновлены');
+      document.getElementById('memberModal').style.display = 'none';
+      loadProjects(); // перезагрузим данные
+    } else {
+      alert('❌ Не удалось сохранить часы');
+    }
+  } catch (err) {
+    console.error('Ошибка при сохранении часов:', err);
+    alert('❌ Ошибка при отправке запроса');
+  }
+};
+  
 </script>
 </body>
 </html>
