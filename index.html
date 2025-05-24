@@ -640,21 +640,21 @@ async function skipDay() {
   loader.className = 'loading-text';
   loader.textContent = 'Пропускаем день...';
   form.appendChild(loader);
-
-  const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  
+const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/submit-hours', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(payload)
+});
 
   const result = await res.json();
-
   if (result.success) {
-    alert(`День ${selectedDay} успешно пропущен как ${reason}`);
-    form.innerHTML = '';
+  alert(`День ${selectedDay} успешно пропущен как ${reason}`);
+  form.innerHTML = '';
     await loadUserData();
   } else {
-    alert('Ошибка при пропуске дня');
+    const errorMessage = result.reason || 'Ошибка при пропуске дня';
+    alert(`Ошибка: ${errorMessage}`);
     form.removeChild(loader);
   }
 }
