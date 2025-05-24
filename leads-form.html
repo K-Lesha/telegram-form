@@ -86,7 +86,10 @@
           body: JSON.stringify({ telegram_id })
         });
 
-        const data = await res.json();
+        let data = await res.json();
+        if (!Array.isArray(data)) {
+          data = [data]; // превратить одиночный объект в массив
+        } 
         console.log('Результат запроса:', data);
 
         // ВЫВОД В HTML
