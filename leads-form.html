@@ -149,65 +149,64 @@
   title.textContent = 'Участники проекта:';
   membersContainer.appendChild(title);
   membersContainer.appendChild(document.createElement('br'));
+(project.members || []).forEach(member => {
+  const row = document.createElement('div');
+  row.style.marginTop = '6px';
 
-  (project.members || []).forEach(member => {
-    const row = document.createElement('div');
-    row.style.marginTop = '6px';
+  const nameSpan = document.createElement('span');
+  nameSpan.textContent = `${member.name}: `;
+  nameSpan.style.marginRight = '6px';
+  if (member.telegram_id === userTelegramId) {
+  nameSpan.textContent += ' (Вы)';
+}
 
-    const isSelf = member.telegram_id === userTelegramId;
-    const isActive = member.is_active;
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.checked = member.is_active;
+  checkbox.style.marginRight = '8px';
 
-    if (isSelf) {
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = isActive;
-      checkbox.style.marginRight = '8px';
+  const statusText = document.createElement('span');
+  statusText.textContent = member.is_active
+    ? 'Ещё не закончил работы по проекту'
+    : 'Закончил работы по проекту';
 
-      const statusText = document.createElement('span');
-      statusText.textContent = isActive
-        ? 'Ещё не закончил работы по проекту'
-        : 'Закончил работы по проекту';
+  checkbox.onchange = async () => {
+    const newStatus = checkbox.checked;
 
-      checkbox.onchange = async () => {
-        const newStatus = checkbox.checked;
+    const payload = {
+      telegram_id: member.telegram_id,
+      project_id: project.project_id,
+      is_active: newStatus
+    };
 
-        const payload = {
-          telegram_id: member.telegram_id,
-          project_id: project.project_id,
-          is_active: newStatus
-        };
+    try {
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/catch-user-project-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
 
-        try {
-          const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/catch-user-project-status', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const result = await res.json();
-          if (result.success) {
-            statusText.textContent = newStatus
-              ? 'Ещё не закончил работы по проекту'
-              : 'Закончил работы по проекту';
-          } else {
-            alert('❌ Не удалось обновить статус');
-            checkbox.checked = !newStatus;
-          }
-        } catch (err) {
-          console.error('Ошибка при обновлении статуса участника:', err);
-          alert('❌ Ошибка при отправке запроса');
-          checkbox.checked = !newStatus;
-        }
-      };
-
-      row.appendChild(checkbox);
-      row.appendChild(statusText);
-    } else {
-      row.textContent = `${member.name} (${member.is_active ? 'active' : 'inactive'})`;
+      const result = await res.json();
+      if (result.success) {
+        statusText.textContent = newStatus
+          ? 'Ещё не закончил работы по проекту'
+          : 'Закончил работы по проекту';
+      } else {
+        alert('❌ Не удалось обновить статус');
+        checkbox.checked = !newStatus;
+      }
+    } catch (err) {
+      console.error('Ошибка при обновлении статуса участника:', err);
+      alert('❌ Ошибка при отправке запроса');
+      checkbox.checked = !newStatus;
     }
+  };
 
-    membersContainer.appendChild(row);
-  });
+  row.appendChild(nameSpan);
+  row.appendChild(checkbox);
+  row.appendChild(statusText);
+  membersContainer.appendChild(row);
+});
 
   card.insertBefore(membersContainer, card.querySelector('label')); // вставляем до первой label
   return card;
