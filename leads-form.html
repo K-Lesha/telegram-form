@@ -65,6 +65,10 @@
 </head>
 <body>
   <h1>Leads</h1>
+  <div id="raw-response" style="background:#eee; padding:10px; margin-bottom:20px; border-radius:8px;">
+    <strong>Raw Response:</strong>
+    <pre id="json-output" style="white-space:pre-wrap;"></pre>
+  </div>
   <div id="projects"></div>
 
   <script>
@@ -73,11 +77,8 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        const telegram_id = tg?.initDataUnsafe?.user?.id;
-        if (!telegram_id) {
-          alert('Ошибка: telegram_id не получен');
-          return;
-        }
+        const telegram_id = tg?.initDataUnsafe?.user?.id || 217500012;
+        console.log('Отправка запроса с telegram_id:', telegram_id);
 
         const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form', {
           method: 'POST',
@@ -86,7 +87,10 @@
         });
 
         const data = await res.json();
-        console.log('Полученные данные:', data);
+        console.log('Результат запроса:', data);
+
+        // ВЫВОД В HTML
+        document.getElementById('json-output').textContent = JSON.stringify(data, null, 2);
 
         const container = document.getElementById('projects');
         container.innerHTML = '';
