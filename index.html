@@ -829,17 +829,48 @@ function closeConfirmation() {
       tg.close();
     }
 
-    function showProjectInfo(project) {
+function showProjectInfo(project) {
   const content = document.getElementById('projectInfoContent');
+  const isActive = project.is_active_plan === true;
+
   content.innerHTML = `
     <h3>${project.project_name || 'Без названия'}</h3>
     <p><strong>⏳ Заложено (contracted):</strong> ${project.contracted_hours ?? '—'} ч</p>
     <p><strong>📋 План (planned):</strong> ${project.planned_hours ?? '—'} ч</p>
     <p><strong>⏱ Оттрекано (actual):</strong> ${project.actual_hours ?? '—'} ч</p>
-    <p><strong>👤 Участие:</strong> ${project.is_active_plan === true ? 'Активен' : project.is_active_plan === false ? 'Не активен' : '—'}</p>
+    <p><strong>👤 Участие:</strong>
+      <label style="display:inline-flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="toggleActiveStatus" ${isActive ? 'checked' : ''}>
+        ${isActive ? 'Активен' : 'Не активен'}
+      </label>
+    </p>
     <p><strong>📁 Статус проекта:</strong> ${project.project_status || '—'}</p>
     <button onclick="closeProjectModal()">✖️ Закрыть</button>
   `;
+
+  const toggle = document.getElementById('toggleActiveStatus');
+  toggle.addEventListener('change', async () => {
+    const newStatus = toggle.checked;
+    toggle.disabled = true;
+
+    try {
+      await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/catch-user-project-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id,
+          project_id: project.project_id,
+          is_active: newStatus
+        })
+      });
+
+      await loadUserData(); // перезагрузка после изменения
+      closeProjectModal();  // закрыть модалку
+    } catch (err) {
+      alert('Ошибка при обновлении статуса');
+      toggle.disabled = false;
+    }
+  });
 
   document.getElementById('projectInfoModal').style.display = 'flex';
 }
