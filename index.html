@@ -804,7 +804,8 @@ function closeConfirmation() {
           await loadUserData();
         }
       } else {
-        alert('Ошибка при сохранении');
+        const errorMessage = result.reason || 'Ошибка при сохранении';
+        alert(`Ошибка: ${errorMessage}`);
         form.removeChild(loader);
         button.disabled = false;
         button.textContent = '📝 Записать';
