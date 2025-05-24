@@ -52,6 +52,10 @@
       gap: 8px;
       margin-top: 10px;
     }
+    .archive .project-card {
+  background-color: #f0f0f0;
+  opacity: 0.8;
+}
     button {
       padding: 10px 16px;
       background-color: #007aff;
@@ -64,106 +68,216 @@
   </style>
 </head>
 <body>
-  <h1>Leads</h1>
-  <div id="raw-response" style="background:#eee; padding:10px; margin-bottom:20px; border-radius:8px;">
-    <strong>Raw Response:</strong>
-    <pre id="json-output" style="white-space:pre-wrap;"></pre>
-  </div>
+  <h1>Статусы проектов</h1>
+
   <div id="projects"></div>
 
-  <script>
-    async function loadProjects() {
-      try {
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+<script>
+  async function loadProjects() {
+    try {
+      const tg = window.Telegram.WebApp;
+      tg.expand();
 
-        const telegram_id = tg?.initDataUnsafe?.user?.id || 217500012;
-        console.log('Отправка запроса с telegram_id:', telegram_id);
+      const telegram_id = tg?.initDataUnsafe?.user?.id || 217500012;
+      console.log('Отправка запроса с telegram_id:', telegram_id);
 
-        const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_id })
-        });
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id })
+      });
 
-        let data = await res.json();
-        if (!Array.isArray(data)) {
-          data = [data]; // превратить одиночный объект в массив
-        } 
-        console.log('Результат запроса:', data);
-
-        // ВЫВОД В HTML
-        document.getElementById('json-output').textContent = JSON.stringify(data, null, 2);
-
-        const container = document.getElementById('projects');
-        container.innerHTML = '';
-
-        if (!Array.isArray(data) || data.length === 0) {
-          container.innerHTML = '<p>Нет доступных проектов.</p>';
-          return;
-        }
-
-        data.forEach(project => {
-          const card = document.createElement('div');
-          card.className = 'project-card';
-
-          const membersHTML = (project.members || [])
-            .map(m => `${m.name} (${m.is_active ? 'active' : 'inactive'})`)
-            .join('<br>');
-
-          card.innerHTML = `
-            <h2>${project.project_name}</h2>
-            <div class="members">
-              <strong>Members:</strong><br>
-              ${membersHTML}
-            </div>
-            <label>Start Date</label>
-            <input type="date" value="${project.start_date || ''}" id="start-${project.project_id}" />
-            <label>End Date</label>
-            <input type="date" value="${project.end_date || ''}" id="end-${project.project_id}" />
-            <div class="toggle">
-              <label>Archived</label>
-              <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' ? 'checked' : ''} />
-            </div>
-            <button onclick="updateProject(${project.project_id})">Save</button>
-          `;
-
-          container.appendChild(card);
-        });
-      } catch (err) {
-        console.error('Ошибка при загрузке проектов:', err);
-        alert('❌ Ошибка при получении данных. Проверь консоль разработчика.');
+      let data = await res.json();
+      if (!Array.isArray(data)) {
+        data = [data];
       }
-    }
+      console.log('Результат запроса:', data);
 
-    async function updateProject(projectId) {
-      try {
-        const startDate = document.getElementById(`start-${projectId}`).value;
-        const endDate = document.getElementById(`end-${projectId}`).value;
-        const isArchived = document.getElementById(`archived-${projectId}`).checked;
+      const container = document.getElementById('projects');
+      container.innerHTML = '';
+
+      if (data.length === 0) {
+        container.innerHTML = '<p>Нет доступных проектов.</p>';
+        return;
+      }
+
+      const active = data.filter(p => p.project_status !== 'archive');
+      const archive = data.filter(p => p.project_status === 'archive');
+
+      // Активные
+      active.forEach(project => {
+        const card = renderProjectCard(project);
+        container.appendChild(card);
+      });
+
+      // Архивный блок
+      if (archive.length > 0) {
+        const archiveSection = renderArchiveSection(archive);
+        container.appendChild(archiveSection);
+      }
+    } catch (err) {
+      console.error('Ошибка при загрузке проектов:', err);
+      alert('❌ Ошибка при получении данных. Проверь консоль разработчика.');
+    }
+  }
+
+  function renderProjectCard(project) {
+  const card = document.createElement('div');
+  card.className = 'project-card';
+
+  const userTelegramId = window.Telegram.WebApp.initDataUnsafe?.user?.id || 217500012;
+
+  card.innerHTML = `
+    <h2>${project.project_name}
+      ${project.project_status === 'archive' ? '<span style="color: #999; font-size: 12px; margin-left: 8px;">(ARCHIVE)</span>' : ''}
+    </h2>
+    <label>Start Date</label>
+    <input type="date" value="${project.start_date || ''}" id="start-${project.project_id}" />
+    <label>End Date</label>
+    <input type="date" value="${project.end_date || ''}" id="end-${project.project_id}" />
+    <div class="toggle">
+      <label>Archived</label>
+      <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' ? 'checked' : ''} />
+    </div>
+    <button onclick="updateProject(${project.project_id})">Save</button>
+  `;
+
+  // === Members Section ===
+  const membersContainer = document.createElement('div');
+  membersContainer.className = 'members';
+  const title = document.createElement('strong');
+  title.textContent = 'Участники проекта:';
+  membersContainer.appendChild(title);
+  membersContainer.appendChild(document.createElement('br'));
+
+  (project.members || []).forEach(member => {
+    const row = document.createElement('div');
+    row.style.marginTop = '6px';
+
+    const isSelf = member.telegram_id === userTelegramId;
+    const isActive = member.is_active;
+
+    if (isSelf) {
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = isActive;
+      checkbox.style.marginRight = '8px';
+
+      const statusText = document.createElement('span');
+      statusText.textContent = isActive
+        ? 'Ещё не закончил работы по проекту'
+        : 'Закончил работы по проекту';
+
+      checkbox.onchange = async () => {
+        const newStatus = checkbox.checked;
 
         const payload = {
-          project_id: projectId,
-          start_date: startDate,
-          end_date: endDate,
-          project_status: isArchived ? 'archive' : 'active'
+          telegram_id: member.telegram_id,
+          project_id: project.project_id,
+          is_active: newStatus
         };
 
-        const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/update-project-status', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        try {
+          const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook-test/catch-user-project-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
 
-        const result = await res.json();
-        alert(result.success ? '✅ Обновлено' : `❌ Ошибка: ${result.reason || 'unknown'}`);
-      } catch (err) {
-        console.error('Ошибка при обновлении проекта:', err);
-        alert('❌ Ошибка при отправке обновления.');
-      }
+          const result = await res.json();
+          if (result.success) {
+            statusText.textContent = newStatus
+              ? 'Ещё не закончил работы по проекту'
+              : 'Закончил работы по проекту';
+          } else {
+            alert('❌ Не удалось обновить статус');
+            checkbox.checked = !newStatus;
+          }
+        } catch (err) {
+          console.error('Ошибка при обновлении статуса участника:', err);
+          alert('❌ Ошибка при отправке запроса');
+          checkbox.checked = !newStatus;
+        }
+      };
+
+      row.appendChild(checkbox);
+      row.appendChild(statusText);
+    } else {
+      row.textContent = `${member.name} (${member.is_active ? 'active' : 'inactive'})`;
     }
 
-    loadProjects();
-  </script>
+    membersContainer.appendChild(row);
+  });
+
+  card.insertBefore(membersContainer, card.querySelector('label')); // вставляем до первой label
+  return card;
+}
+
+ function renderArchiveSection(projects) {
+  const container = document.createElement('div');
+  container.style.marginTop = '30px';
+
+  const toggle = document.createElement('h3');
+  toggle.textContent = '▶️ Архивные проекты';
+  toggle.style.cursor = 'pointer';
+  toggle.style.userSelect = 'none';
+
+  const contentWrapper = document.createElement('div');
+  contentWrapper.className = 'archive'; // 💡 здесь применяется твой стиль
+  const content = document.createElement('div');
+  content.style.display = 'none';
+
+  toggle.onclick = () => {
+    const isOpen = content.style.display === 'block';
+    content.style.display = isOpen ? 'none' : 'block';
+    toggle.textContent = isOpen ? '▶️ Архивные проекты' : '🔽 Архивные проекты';
+  };
+
+  container.appendChild(toggle);
+  container.appendChild(contentWrapper);
+  contentWrapper.appendChild(content);
+
+  projects.forEach(project => {
+    const card = renderProjectCard(project);
+    content.appendChild(card);
+  });
+
+  return container;
+}
+
+  async function updateProject(projectId) {
+    try {
+      const startDate = document.getElementById(`start-${projectId}`).value;
+      const endDate = document.getElementById(`end-${projectId}`).value;
+      const isArchived = document.getElementById(`archived-${projectId}`).checked;
+
+      const payload = {
+        project_id: projectId,
+        start_date: startDate,
+        end_date: endDate,
+        project_status: isArchived ? 'archive' : 'active'
+      };
+
+      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/update-project-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await res.json();
+      if (result.success) {
+        alert('✅ Обновлено'); 
+        loadProjects(); // 🔄 перезагружаем всё заново
+      } else { 
+        alert(`❌ Ошибка: ${result.reason || 'unknown'}`);
+      }
+    } catch (err) {
+      console.error('Ошибка при обновлении проекта:', err);
+      alert('❌ Ошибка при отправке обновления.');
+    }
+  }
+
+  loadProjects();
+</script>
 </body>
 </html>
