@@ -131,12 +131,12 @@
     <h2>${project.project_name}
       ${project.project_status === 'archive' ? '<span style="color: #999; font-size: 12px; margin-left: 8px;">(ARCHIVE)</span>' : ''}
     </h2>
-    <label>Start Date</label>
+    <label>Дата начала проекта</label>
     <input type="date" value="${project.start_date || ''}" id="start-${project.project_id}" />
-    <label>End Date</label>
+    <label>Дата окончания проекта</label>
     <input type="date" value="${project.end_date || ''}" id="end-${project.project_id}" />
     <div class="toggle">
-      <label>Archived</label>
+      <label>В архиве</label>
       <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' ? 'checked' : ''} />
     </div>
     <button onclick="updateProject(${project.project_id})">Save</button>
@@ -167,8 +167,8 @@
 
   const statusText = document.createElement('span');
   statusText.textContent = member.is_active
-    ? 'Ещё не закончил работы по проекту'
-    : 'Закончил работы по проекту';
+    ? 'Ещё работает над проектом'
+    : 'Закончил/а работы по проекту';
 
   checkbox.onchange = async () => {
     const newStatus = checkbox.checked;
@@ -189,8 +189,8 @@
       const result = await res.json();
       if (result.success) {
         statusText.textContent = newStatus
-          ? 'Ещё не закончил работы по проекту'
-          : 'Закончил работы по проекту';
+          ? '(Работает на проекте)'
+          : '(Не работает на проекте)';
       } else {
         alert('❌ Не удалось обновить статус');
         checkbox.checked = !newStatus;
