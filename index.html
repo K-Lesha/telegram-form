@@ -285,6 +285,15 @@
   </div>
 </div>
 
+    <!-- Модалка информации о проекте -->
+  <div id="projectInfoModal" class="modal-overlay">
+  <div class="modal-content" id="projectInfoContent">
+    <!-- Сюда будет вставляться содержимое через JS -->
+    <button onclick="closeProjectModal()">✖️ Закрыть</button>
+  </div>
+</div>
+
+      <!-- Модалка об отпуске -->
   <div id="vacationDateModal" class="modal-overlay" style="display: none;">
   <div class="modal-content">
     <h3>Укажи даты отпуска</h3>
@@ -297,10 +306,13 @@
   </div>
 </div>
 
+        <!-- Модалка выбора времени по проекту -->
     <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
   </div>
 
+
+          <!-- Модалка с алертом что все дни заполнены -->
   <div id="modal" class="modal-overlay">
     <div class="modal-content">
       <p>Все дни уже заполнены 🤝</p>
@@ -308,6 +320,7 @@
     </div>
   </div>
 
+            <!-- Модалка с алертом что все дни заполнены -->
 <div id="finalModal" class="modal-overlay">
   <div class="modal-content">
     <p><strong>Все дни заполнены 🤝</strong></p>
@@ -397,15 +410,26 @@ function renderFormForDay(day) {
 
   activeProjects.forEach(project => {
     const status = project.project_status || 'active';
-    if (grouped[status]) {
-      grouped[status].push(project);
+
+    // Внутренние задачи — всегда отдельная категория
+    if (status === 'internal') {
+      grouped.internal.push(project);
     }
+    // Архив: project_status == 'archive' или is_active_plan === false
+    else if (status === 'archive' || project.is_active_plan === false) {
+      grouped.archive.push(project);
+    }
+    // Активные: только если явно is_active_plan === true
+    else if (project.is_active_plan === true) {
+      grouped.active.push(project);
+    }
+    // Остальные (например, если is_active_plan === null) — не добавляем вовсе
   });
 
   const titleMap = {
     active: '🔥 Активные проекты',
     internal: '🏢 Внутренние задачи',
-    archive: 'Архив' // стрелка добавляется отдельно
+    archive: 'Архив'
   };
 
   Object.entries(grouped).forEach(([status, projects]) => {
@@ -419,7 +443,6 @@ function renderFormForDay(day) {
     sectionTitle.style.alignItems = 'center';
     sectionTitle.style.cursor = status === 'archive' ? 'pointer' : 'default';
 
-    // Архив — особый случай
     if (status === 'archive') {
       const archiveLabel = document.createElement('span');
       archiveLabel.textContent = '▶️ Архив';
@@ -445,7 +468,6 @@ function renderFormForDay(day) {
       container.appendChild(archiveBlock);
       form.appendChild(container);
     } else {
-      // Все остальные секции — сразу отображаются
       const label = document.createElement('span');
       label.textContent = titleMap[status] || status;
       sectionTitle.appendChild(label);
@@ -486,6 +508,8 @@ function renderFormForDay(day) {
   const title = document.createElement('div');
   title.textContent = project.project_name || project.name || 'Без названия';
   title.className = 'project-title';
+  title.style.cursor = 'pointer';
+  title.onclick = () => showProjectInfo(project); // 👈 обработчик
   container.appendChild(title);
 
   const timeDisplay = document.createElement('div');
@@ -805,6 +829,25 @@ function closeConfirmation() {
       tg.close();
     }
 
+    function showProjectInfo(project) {
+  const content = document.getElementById('projectInfoContent');
+  content.innerHTML = `
+    <h3>${project.project_name || 'Без названия'}</h3>
+    <p><strong>⏳ Заложено (contracted):</strong> ${project.contracted_hours ?? '—'} ч</p>
+    <p><strong>📋 План (planned):</strong> ${project.planned_hours ?? '—'} ч</p>
+    <p><strong>⏱ Оттрекано (actual):</strong> ${project.actual_hours ?? '—'} ч</p>
+    <p><strong>👤 Участие:</strong> ${project.is_active_plan === true ? 'Активен' : project.is_active_plan === false ? 'Не активен' : '—'}</p>
+    <p><strong>📁 Статус проекта:</strong> ${project.project_status || '—'}</p>
+    <button onclick="closeProjectModal()">✖️ Закрыть</button>
+  `;
+
+  document.getElementById('projectInfoModal').style.display = 'flex';
+}
+
+function closeProjectModal() {
+  document.getElementById('projectInfoModal').style.display = 'none';
+}
+
     function formatDate(dateString) {
       const months = [
           'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
@@ -842,6 +885,8 @@ function closeConfirmation() {
       window.cancelSkipReason?.();
       }
     });
+
+    
     
   </script>
 
