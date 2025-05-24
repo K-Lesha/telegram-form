@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Leads Projects Editor</title>
+
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -66,36 +69,50 @@
 
   <script>
     async function loadProjects() {
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form');
-      const data = await res.json();
+  const tg = window.Telegram.WebApp;
+  tg.expand();
 
-      const container = document.getElementById('projects');
-      container.innerHTML = '';
+  const telegram_id = tg?.initDataUnsafe?.user?.id;
+  if (!telegram_id) {
+    alert('Ошибка: telegram_id не получен');
+    return;
+  }
 
-      data.forEach(project => {
-        const card = document.createElement('div');
-        card.className = 'project-card';
+  const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegram_id })
+  });
 
-        card.innerHTML = `
-          <h2>${project.project_name}</h2>
-          <div class="members">
-            <strong>Members:</strong><br>
-            ${project.members.map(m => `${m.name} (${m.is_active ? 'active' : 'inactive'})`).join('<br>')}
-          </div>
-          <label>Start Date</label>
-          <input type="date" value="${project.start_date || ''}" id="start-${project.id}" />
-          <label>End Date</label>
-          <input type="date" value="${project.end_date || ''}" id="end-${project.id}" />
-          <div class="toggle">
-            <label>Archived</label>
-            <input type="checkbox" id="archived-${project.id}" ${project.project_status === 'archive' ? 'checked' : ''} />
-          </div>
-          <button onclick="updateProject(${project.id})">Save</button>
-        `;
+  const data = await res.json();
 
-        container.appendChild(card);
-      });
-    }
+  const container = document.getElementById('projects');
+  container.innerHTML = '';
+
+  data.forEach(project => {
+    const card = document.createElement('div');
+    card.className = 'project-card';
+
+    card.innerHTML = `
+      <h2>${project.project_name}</h2>
+      <div class="members">
+        <strong>Members:</strong><br>
+        ${project.members.map(m => `${m.name} (${m.is_active ? 'active' : 'inactive'})`).join('<br>')}
+      </div>
+      <label>Start Date</label>
+      <input type="date" value="${project.start_date || ''}" id="start-${project.project_id}" />
+      <label>End Date</label>
+      <input type="date" value="${project.end_date || ''}" id="end-${project.project_id}" />
+      <div class="toggle">
+        <label>Archived</label>
+        <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' ? 'checked' : ''} />
+      </div>
+      <button onclick="updateProject(${project.project_id})">Save</button>
+    `;
+
+    container.appendChild(card);
+  });
+}
 
     async function updateProject(projectId) {
       const startDate = document.getElementById(`start-${projectId}`).value;
