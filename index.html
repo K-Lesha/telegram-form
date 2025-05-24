@@ -835,13 +835,12 @@ function showProjectInfo(project) {
 
   content.innerHTML = `
     <h3>${project.project_name || 'Без названия'}</h3>
-    <p><strong>⏳ Заложено (contracted):</strong> ${project.contracted_hours ?? '—'} ч</p>
-    <p><strong>📋 План (planned):</strong> ${project.planned_hours ?? '—'} ч</p>
-    <p><strong>⏱ Оттрекано (actual):</strong> ${project.actual_hours ?? '—'} ч</p>
-    <p><strong>👤 Участие:</strong>
+    <p><strong>📋 План работ по проекту в часах:</strong> ${project.planned_hours ?? '—'} ч</p>
+    <p><strong>⏱ Оттрекано часов по проекту:</strong> ${project.actual_hours ?? '—'} ч</p>
+    <p><strong>👤 Работы по проекту:</strong>
       <label style="display:inline-flex;align-items:center;gap:8px;">
         <input type="checkbox" id="toggleActiveStatus" ${isActive ? 'checked' : ''}>
-        ${isActive ? 'Активен' : 'Не активен'}
+        ${isActive ? 'Ещё не закончены' : 'Закончены'}
       </label>
     </p>
     <p><strong>📁 Статус проекта:</strong> ${project.project_status || '—'}</p>
@@ -865,6 +864,7 @@ function showProjectInfo(project) {
       });
 
       await loadUserData(); // перезагрузка после изменения
+      renderFormForDay(selectedDay); // 👈 перерисовываем форму
       closeProjectModal();  // закрыть модалку
     } catch (err) {
       alert('Ошибка при обновлении статуса');
