@@ -167,8 +167,8 @@
 
   const statusText = document.createElement('span');
   statusText.textContent = member.is_active
-    ? 'Ещё работает над проектом'
-    : 'Закончил/а работы по проекту';
+    ? '(Работает над проектом)'
+    : '(Закончил/а работы)';
 
   checkbox.onchange = async () => {
     const newStatus = checkbox.checked;
