@@ -917,16 +917,21 @@ function closeProjectModal() {
 }
 
     function formatDate(dateString) {
-      const months = [
-          'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-          'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-                    ];
-      const date = new Date(dateString);
-      const day = date.getDate();
-      const month = months[date.getMonth()];
-      const year = date.getFullYear();
-      return `${day} ${month} ${year} г.`;
-    }
+  const months = [
+    'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+    'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+  ];
+  const weekdays = [
+    'воскресенье', 'понедельник', 'вторник',
+    'среда', 'четверг', 'пятница', 'суббота'
+  ];
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const weekday = weekdays[date.getDay()];
+  return `${day} ${month} ${year} г. (${weekday})`;
+}
 
     if (telegram_id !== '—') {
       loadUserData();
