@@ -735,8 +735,32 @@ window.cancelVacationDates = function () {
   }
 };
 
-    function confirmSubmit() {
+  function confirmSubmit() {
   document.getElementById('confirmationModal').style.display = 'none';
+
+  const form = document.getElementById('formBlock');
+  const containers = form.querySelectorAll('[data-project-id]');
+
+  let totalMinutes = 0;
+
+  containers.forEach(c => {
+    const h = parseInt(c.dataset.hours || 0);
+    const m = parseInt(c.dataset.minutes || 0);
+    totalMinutes += h * 60 + m;
+  });
+
+  const totalHours = totalMinutes / 60;
+
+  if (totalHours < 8) {
+    alert('⚠️ Ты заполнил(а) менее 8 часов. Мы не можем принять отчёт. Пожалуйста, дозаполни!');
+    return; // ❌ не отправляем
+  }
+
+  if (totalHours > 8) {
+    const proceed = confirm('⚠️ Ты указал(а) больше 8 часов. Это считается переработкой. Всё ли корректно?');
+    if (!proceed) return; // ❌ пользователь отменил
+  }
+
   const btn = document.getElementById('saveButton');
   finalSubmitForm(btn);
 }
