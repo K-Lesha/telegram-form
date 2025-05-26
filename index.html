@@ -93,6 +93,20 @@
       50% { opacity: 1; }
     }
 
+    .project-title a {
+  color: #007aff;
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.project-hours {
+  font-style: italic;
+  color: #888;
+  margin-left: 6px;
+  font-size: 14px;
+}
+    
     #timePickerModal {
       position: fixed;
       top: 0; left: 0;
@@ -542,10 +556,22 @@ function renderFormForDay(day) {
   container.dataset.minutes = 0;
 
   const title = document.createElement('div');
-  title.textContent = project.project_name || project.name || 'Без названия';
   title.className = 'project-title';
-  title.style.cursor = 'pointer';
-  title.onclick = () => showProjectInfo(project); // 👈 обработчик
+
+  const link = document.createElement('a');
+  link.textContent = project.project_name || project.name || 'Без названия';
+  link.onclick = () => showProjectInfo(project);
+  link.href = 'javascript:void(0)'; // Чтобы вёл себя как ссылка без перехода
+  title.appendChild(link);
+
+  // Добавляем часы в скобках
+  const actual = project.actual_hours ?? 0;
+  const planned = project.planned_hours ?? 0;
+  const hoursInfo = document.createElement('span');
+  hoursInfo.className = 'project-hours';
+  hoursInfo.textContent = `(${actual} из ${planned})`;
+  title.appendChild(hoursInfo);
+
   container.appendChild(title);
 
   const timeDisplay = document.createElement('div');
