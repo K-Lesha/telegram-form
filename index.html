@@ -630,30 +630,39 @@ async function skipDay() {
   let vacationDates = null;
 
   if (reason === 'vacation') {
-    let vacationCancelled = false;
+  let vacationCancelled = false;
 
-    try {
-      vacationDates = await promptVacationDates();
-    } catch (e) {
-      vacationCancelled = true;
-    }
-
-    if (vacationCancelled) {
-  // Возврат к выбору причины
-      return await skipDay(); // 👈 рекурсивный вызов — покажет модалку заново
-    }
-
-    // Запись отпуска
-    await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/add-vacation', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        telegram_id,
-        start_date: vacationDates.start_date,
-        end_date: vacationDates.end_date
-      })
-    });
+  try {
+    vacationDates = await promptVacationDates();
+  } catch (e) {
+    vacationCancelled = true;
   }
+
+  if (vacationCancelled) {
+    return await skipDay();
+  }
+
+  // 👉 Новая логика: проверка включения выбранной даты в отпуск
+  const selected = new Date(selectedDay);
+  const vacationStartDate = new Date(vacationDates.start_date);
+  const vacationEndDate = new Date(vacationDates.end_date);
+
+  if (selected < vacationStartDate || selected > vacationEndDate) {
+    alert(`❌ Дата ${formatDate(selectedDay)} не входит в выбранный диапазон отпуска.`);
+    return await skipDay(); // Повторный выбор причины
+  }
+
+  // ✅ Если всё ок — записываем отпуск
+  await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/add-vacation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegram_id,
+      start_date: vacationDates.start_date,
+      end_date: vacationDates.end_date
+    })
+  });
+}
 
   const payload = {
     telegram_id,
