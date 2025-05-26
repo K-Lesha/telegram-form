@@ -93,8 +93,18 @@
       50% { opacity: 1; }
     }
 
-    .project-title a {
-  color: #007aff;
+      /* Колонка с названием проекта */
+.project-title {
+  display: flex;
+  flex-direction: column;
+  white-space: normal;
+  width: 200px;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.project-title a {
+  color: #000000; /* Мягкий синий */
   text-decoration: underline;
   font-weight: 600;
   cursor: pointer;
@@ -102,9 +112,9 @@
 
 .project-hours {
   font-style: italic;
-  color: #888;
-  margin-left: 6px;
-  font-size: 14px;
+  color: #7d7a7a;
+  font-size: 12px;
+  margin-top: 4px;
 }
     
     #timePickerModal {
@@ -167,15 +177,6 @@
     display: flex;
     align-items: center;
     margin-bottom: 20px;
-  }
-
-  /* Колонка с названием проекта */
-  .project-title {
-    width: 200px;       /* фиксированная ширина */
-    overflow: hidden;   /* если название слишком длинное */
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin-right: 12px;
   }
 
   /* Колонка для отображения времени */
