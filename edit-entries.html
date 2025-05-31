@@ -118,6 +118,15 @@
       });
 
       const data = await res.json();
+
+      const pre = document.createElement('pre');
+pre.style.background = '#eee';
+pre.style.padding = '10px';
+pre.style.borderRadius = '8px';
+pre.textContent = JSON.stringify(data, null, 2);
+document.body.appendChild(pre);
+
+      
       if (!Array.isArray(data) || data.length === 0) {
         content.textContent = 'Нет данных.';
         return;
