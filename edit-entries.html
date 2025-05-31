@@ -311,19 +311,19 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
 
     const editBtn = document.createElement('button');
     editBtn.textContent = '✏️ Редактировать';
-    editBtn.onclick = () => enableVacationEdit(index, start, end);
+editBtn.onclick = () => enableVacationEdit(v.id, start, end);
     div.appendChild(editBtn);
 
     content.appendChild(div);
   });
 }
 
-    function enableVacationEdit(index, startDate, endDate) {
+    function enableVacationEdit(vacationId, startDate, endDate) {
   content.innerHTML = '';
 
   const dateEl = document.createElement('div');
   dateEl.className = 'entry-date';
-  dateEl.textContent = `Редактирование отпуска #${index + 1}`;
+  dateEl.textContent = `Редактирование отпуска`;
   content.appendChild(dateEl);
 
   const startInput = document.createElement('input');
@@ -346,11 +346,13 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
 
   const saveBtn = document.createElement('button');
   saveBtn.textContent = '💾 Сохранить';
-  saveBtn.onclick = () => saveVacationUpdate(startInput.value, endInput.value, saveBtn);
+  saveBtn.onclick = () => saveVacationUpdate(vacationId, startInput.value, endInput.value, saveBtn);
   content.appendChild(document.createElement('br'));
   content.appendChild(saveBtn);
 }
-    async function saveVacationUpdate(start_date, end_date, btn) {
+
+    
+   async function saveVacationUpdate(vacation_id, start_date, end_date, btn) {
   btn.disabled = true;
 
   if (!userId) {
@@ -364,6 +366,7 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         user_id: userId,
+        vacation_id, // <-- добавляем сюда ID отпуска
         start_date,
         end_date
       })
@@ -376,7 +379,7 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
     }
 
     alert('✅ Отпуск обновлён!');
-    fetchData(); // обновим список
+    fetchData();
   } catch (err) {
     alert('❌ Ошибка соединения.');
     console.error(err);
