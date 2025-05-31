@@ -133,20 +133,6 @@
 
 const data = await res.json();
 
-// ❗ Показываем данные в любом случае (даже если структура неправильная)
-const rawBlock = document.createElement('div');
-rawBlock.innerHTML = `
-  <h3>📦 Сырые данные (debug):</h3>
-  <pre style="white-space: pre-wrap; word-break: break-word; background:#eee; padding:10px; border-radius:6px;">${JSON.stringify(data, null, 2)}</pre>
-`;
-document.body.appendChild(rawBlock);
-
-// только теперь проверяем
-if (!data || typeof data !== 'object') {
-  content.innerHTML += '<p style="color:red;">⚠️ Данные не являются объектом.</p>';
-  return;
-}
-
 fullData = data;
     btnEntries.disabled = false;
     btnVacations.disabled = false;
@@ -199,30 +185,102 @@ showSection(currentSection);
       content.innerHTML = '';
       entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-      entriesByDate.forEach(group => {
-        if (!Array.isArray(group.entries) || group.entries.length === 0) return;
+     entriesByDate.forEach(group => {
+  if (!Array.isArray(group.entries) || group.entries.length === 0) return;
 
-        const dateEl = document.createElement('div');
-        dateEl.className = 'entry-date';
-        dateEl.textContent = formatDate(group.date);
-        content.appendChild(dateEl);
+  const dateEl = document.createElement('div');
+  dateEl.className = 'entry-date';
+  dateEl.textContent = formatDate(group.date);
+  content.appendChild(dateEl);
 
-        group.entries.forEach(e => {
-          const div = document.createElement('div');
-          div.className = 'entry';
+  group.entries.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
 
-          const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
-          const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
+    const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
+    const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
 
-          div.innerHTML = `
-            <div class="project">${name}</div>
-            <div class="time">${hours} ч</div>
-          `;
+    div.innerHTML = `
+      <div class="project">${name}</div>
+      <div class="time">${hours} ч</div>
+    `;
 
-          content.appendChild(div);
-        });
-      });
+    content.appendChild(div);
+  });
+
+  // ✅ Редактировать — внутри цикла
+  const editBtn = document.createElement('button');
+  editBtn.textContent = '✏️ Редактировать';
+  editBtn.style.marginBottom = '10px';
+  editBtn.onclick = () => enableEditMode(group);
+  content.appendChild(editBtn);
+});
+      
     }
+    function enableEditMode(group) {
+  content.innerHTML = '';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'entry-date';
+  dateEl.textContent = formatDate(group.date);
+  content.appendChild(dateEl);
+
+  const updatedEntries = [];
+
+  group.entries.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+
+    const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
+    const inputId = `input_${group.date}_${e.project_id}`;
+
+    div.innerHTML = `
+      <div class="project">${name}</div>
+      <input type="number" id="${inputId}" value="${e.hours}" step="0.25" style="margin-top:4px;padding:8px;width:100px;border-radius:6px;border:1px solid #ccc;" />
+    `;
+
+    content.appendChild(div);
+
+    updatedEntries.push({ project_id: e.project_id, inputId });
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '💾 Сохранить';
+saveBtn.onclick = () => saveUpdatedEntries(group.date, updatedEntries, saveBtn);
+      content.appendChild(saveBtn);
+}
+
+async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
+      saveBtn.disabled = true;
+      
+  const entries = updatedEntries.map(e => {
+    const val = parseFloat(document.getElementById(e.inputId).value);
+    return {
+      project_id: e.project_id,
+      hours: isNaN(val) ? 0 : val
+    };
+  });
+
+  try {
+    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-time-entry-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, entries })
+    });
+
+if (!res.ok) {
+  const errorText = await res.text(); // если сервер что-то вернул
+  alert('Ошибка сохранения данных: ' + errorText);
+  return;
+}
+
+    alert('✅ Сохранено!');
+    fetchData(); // перезагрузить отображение
+  } catch (err) {
+    alert('Ошибка соединения с сервером.');
+    console.error(err);
+  }
+}
 
     function renderVacations(vacations) {
       if (!Array.isArray(vacations) || vacations.length === 0) {
