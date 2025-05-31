@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <title>История записей</title>
+  <title>История</title>
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -45,54 +45,67 @@
       color: #888;
     }
 
-button {
-  display: inline-block;
-  padding: 10px 16px;
-  margin: 6px 4px;
-  background-color: #007aff;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
+    button {
+      display: inline-block;
+      padding: 10px 16px;
+      margin: 6px 6px 12px 0;
+      background-color: #007aff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
 
-button:hover {
-  background-color: #005fcc;
-}
+    button:hover {
+      background-color: #005fcc;
+    }
 
-button:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+      gap: 8px;
+    }
+
+    .active {
+      background-color: #005fcc !important;
+    }
   </style>
 </head>
 <body>
-<button onclick="goBack()">⬅️ Назад</button>
-<h2>🕘 Записи пользователя</h2> 
-  <div id="entries" class="loading">Загружаем данные...</div>
+  <button onclick="goBack()">⬅️ Назад</button>
+  <div class="controls">
+    <button id="btnEntries" onclick="showSection('entries')">🕘 История записей</button>
+    <button id="btnVacations" onclick="showSection('vacations')">🏖 История отпусков</button>
+  </div>
+  <h2 id="sectionTitle">Пожалуйста, выбери раздел</h2>
+  <div id="content" class="loading">Загрузка...</div>
 
   <script>
     const tg = window.Telegram.WebApp;
-tg.expand(); // чтобы страница заняла больше места
+    tg.expand();
 
-// Альтернативно можешь установить светлую/тёмную тему:
-document.body.style.backgroundColor = tg.themeParams.bg_color || '#f9f9f9';
-document.body.style.color = tg.themeParams.text_color || '#333';
-    
-    const container = document.getElementById('entries');
+    document.body.style.backgroundColor = tg.themeParams.bg_color || '#f9f9f9';
+    document.body.style.color = tg.themeParams.text_color || '#333';
+
+    const content = document.getElementById('content');
+    const title = document.getElementById('sectionTitle');
+    const btnEntries = document.getElementById('btnEntries');
+    const btnVacations = document.getElementById('btnVacations');
+
+    let fullData = null;
 
     function getTelegramIdFromURL() {
       const params = new URLSearchParams(window.location.search);
       return params.get('telegram_id');
     }
 
-    async function loadEntries() {
+    async function fetchData() {
       const telegram_id = getTelegramIdFromURL();
-
       if (!telegram_id) {
-        container.textContent = '❌ Не указан Telegram ID в URL.';
+        content.textContent = '❌ Не указан Telegram ID в URL.';
         return;
       }
 
@@ -104,42 +117,16 @@ document.body.style.color = tg.themeParams.text_color || '#333';
         });
 
         const data = await res.json();
-
         if (!Array.isArray(data) || data.length === 0) {
-          container.textContent = 'Нет записей.';
+          content.textContent = 'Нет данных.';
           return;
         }
 
-        // Группировка по дате
-        const grouped = {};
-        data.forEach(entry => {
-          const date = entry.date || '—';
-          if (!grouped[date]) grouped[date] = [];
-          grouped[date].push(entry);
-        });
-
-        container.innerHTML = '';
-
-        Object.entries(grouped).sort(([a], [b]) => new Date(b) - new Date(a)).forEach(([date, entries]) => {
-          const dateHeader = document.createElement('div');
-          dateHeader.className = 'entry-date';
-          dateHeader.textContent = formatDate(date);
-          container.appendChild(dateHeader);
-
-          entries.forEach(e => {
-            const div = document.createElement('div');
-            div.className = 'entry';
-
-            div.innerHTML = `
-              <div class="project">${e.project_name || e.name || 'Без названия'}</div>
-              <div class="time">${e.value?.toFixed(2) || 0} ч</div>
-            `;
-            container.appendChild(div);
-          });
-        });
+        fullData = data[0]; // предполагаем, что массив из одного пользователя
+        content.textContent = 'Выберите раздел выше.';
 
       } catch (err) {
-        container.textContent = '⚠️ Ошибка загрузки данных.';
+        content.textContent = '⚠️ Ошибка загрузки данных.';
         console.error(err);
       }
     }
@@ -154,11 +141,73 @@ document.body.style.color = tg.themeParams.text_color || '#333';
       });
     }
 
-function goBack() {
-  window.parent.postMessage('close-history', '*');
-}
+    function showSection(section) {
+      btnEntries.classList.toggle('active', section === 'entries');
+      btnVacations.classList.toggle('active', section === 'vacations');
 
-    loadEntries();
+      if (!fullData) {
+        content.textContent = '⏳ Данные ещё загружаются...';
+        return;
+      }
+
+      if (section === 'entries') {
+        title.textContent = '🕘 История записей';
+        renderEntries(fullData.time_entries_by_date);
+      } else if (section === 'vacations') {
+        title.textContent = '🏖 История отпусков';
+        renderVacations(fullData.vacations);
+      }
+    }
+
+    function renderEntries(entriesByDate) {
+      if (!entriesByDate || entriesByDate.length === 0) {
+        content.innerHTML = '<p>Нет записей о часах.</p>';
+        return;
+      }
+
+      content.innerHTML = '';
+      entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
+      entriesByDate.forEach(group => {
+        const dateEl = document.createElement('div');
+        dateEl.className = 'entry-date';
+        dateEl.textContent = formatDate(group.date);
+        content.appendChild(dateEl);
+
+        group.entries.forEach(e => {
+          const div = document.createElement('div');
+          div.className = 'entry';
+          div.innerHTML = `
+            <div class="project">Проект #${e.project_id}</div>
+            <div class="time">${e.hours.toFixed(2)} ч</div>
+          `;
+          content.appendChild(div);
+        });
+      });
+    }
+
+    function renderVacations(vacations) {
+      if (!vacations || vacations.length === 0) {
+        content.innerHTML = '<p>Нет записей об отпусках.</p>';
+        return;
+      }
+
+      content.innerHTML = '';
+      vacations.forEach(v => {
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <div class="project">Отпуск</div>
+          <div class="time">${formatDate(v.start_date)} – ${formatDate(v.end_date)}</div>
+        `;
+        content.appendChild(div);
+      });
+    }
+
+    function goBack() {
+      window.parent.postMessage('close-history', '*');
+    }
+
+    fetchData();
   </script>
 </body>
 </html>
