@@ -155,11 +155,7 @@ document.body.style.color = tg.themeParams.text_color || '#333';
     }
 
     function goBack() {
-  if (tg?.close) {
-    tg.close(); // закрывает WebApp
-  } else {
-    window.history.back(); // на всякий случай fallback
-  }
+  window.close(); // закрывает только popup
 }
 
     loadEntries();
