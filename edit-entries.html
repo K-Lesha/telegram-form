@@ -155,7 +155,7 @@ document.body.style.color = tg.themeParams.text_color || '#333';
     }
 
     function goBack() {
-  window.close(); // закрывает только popup
+  window.history.back(); // возвращает на предыдущую страницу WebApp'а
 }
 
     loadEntries();
