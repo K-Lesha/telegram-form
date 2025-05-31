@@ -799,17 +799,17 @@ function confirmSubmit() {
 
   const totalHours = totalMinutes / 60;
 
-  const selectedDateObj = new Date(selectedDay);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // обнуляем время
+const selectedDateStr = new Date(selectedDay).toISOString().split('T')[0];
+const todayStr = new Date().toISOString().split('T')[0];
 
-  if (selectedDateObj > today) {
-    alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
-    return;
-  }
-
-  const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
-
+if (selectedDateStr > todayStr) {
+  alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
+  return;
+}
+  
+const selectedDateObj = new Date(selectedDay); // ← Добавь эту строку
+const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+  
   if (!isWeekend && totalHours < 8) {
     alert('⚠️ Ты заполнил(а) менее 8 часов. Мы не можем принять отчёт. Пожалуйста, дозаполни!');
     return; // ❌ не отправляем
