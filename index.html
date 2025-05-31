@@ -562,10 +562,9 @@ function renderFormForDay(day) {
   const link = document.createElement('a');
   link.textContent = project.project_name || project.name || 'Без названия';
   link.onclick = () => showProjectInfo(project);
-  link.href = 'javascript:void(0)'; // Чтобы вёл себя как ссылка без перехода
+  link.href = 'javascript:void(0)';
   title.appendChild(link);
 
-  // Добавляем часы в скобках
   const actual = project.actual_hours ?? 0;
   const planned = project.planned_hours ?? 0;
   const hoursInfo = document.createElement('span');
@@ -583,7 +582,16 @@ function renderFormForDay(day) {
   const selectTimeBtn = document.createElement('button');
   selectTimeBtn.textContent = '🕐🤳🏼';
   selectTimeBtn.className = 'select-time-btn';
-  selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+
+  // ❌ Блокируем кнопку, если проект архивный или пользователь неактивен на нём
+  const isArchived = project.project_status === 'archive' || project.is_active_plan === false;
+  if (isArchived) {
+    selectTimeBtn.disabled = true;
+    selectTimeBtn.title = 'Нельзя вносить часы в архивный проект';
+  } else {
+    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+  }
+
   container.appendChild(selectTimeBtn);
 
   return container;
@@ -771,7 +779,7 @@ window.cancelVacationDates = function () {
   }
 };
 
-  function confirmSubmit() {
+function confirmSubmit() {
   document.getElementById('confirmationModal').style.display = 'none';
 
   const form = document.getElementById('formBlock');
@@ -787,14 +795,25 @@ window.cancelVacationDates = function () {
 
   const totalHours = totalMinutes / 60;
 
-  if (totalHours < 8) {
+  const selectedDateObj = new Date(selectedDay);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // обнуляем время
+
+  if (selectedDateObj > today) {
+    alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
+    return;
+  }
+
+  const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+
+  if (!isWeekend && totalHours < 8) {
     alert('⚠️ Ты заполнил(а) менее 8 часов. Мы не можем принять отчёт. Пожалуйста, дозаполни!');
     return; // ❌ не отправляем
   }
 
   if (totalHours > 8) {
     const proceed = confirm('⚠️ Ты указал(а) больше 8 часов. Это считается переработкой. Всё ли корректно?');
-    if (!proceed) return; // ❌ пользователь отменил
+    if (!proceed) return;
   }
 
   const btn = document.getElementById('saveButton');
