@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>История записей</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+
+    h2 {
+      margin-bottom: 16px;
+    }
+
+    .entry-date {
+      margin-top: 24px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .entry {
+      background: white;
+      margin: 8px 0;
+      padding: 12px;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .entry .project {
+      font-weight: 600;
+    }
+
+    .entry .time {
+      color: #777;
+      margin-top: 4px;
+    }
+
+    .loading {
+      font-style: italic;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🕘 Записи пользователя</h2>
+  <div id="entries" class="loading">Загружаем данные...</div>
+
+  <script>
+    const container = document.getElementById('entries');
+
+    function getTelegramIdFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('telegram_id');
+    }
+
+    async function loadEntries() {
+      const telegram_id = getTelegramIdFromURL();
+
+      if (!telegram_id) {
+        container.textContent = '❌ Не указан Telegram ID в URL.';
+        return;
+      }
+
+      try {
+        const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id })
+        });
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || data.length === 0) {
+          container.textContent = 'Нет записей.';
+          return;
+        }
+
+        // Группировка по дате
+        const grouped = {};
+        data.forEach(entry => {
+          const date = entry.date || '—';
+          if (!grouped[date]) grouped[date] = [];
+          grouped[date].push(entry);
+        });
+
+        container.innerHTML = '';
+
+        Object.entries(grouped).sort(([a], [b]) => new Date(b) - new Date(a)).forEach(([date, entries]) => {
+          const dateHeader = document.createElement('div');
+          dateHeader.className = 'entry-date';
+          dateHeader.textContent = formatDate(date);
+          container.appendChild(dateHeader);
+
+          entries.forEach(e => {
+            const div = document.createElement('div');
+            div.className = 'entry';
+
+            div.innerHTML = `
+              <div class="project">${e.project_name || e.name || 'Без названия'}</div>
+              <div class="time">${e.value?.toFixed(2) || 0} ч</div>
+            `;
+            container.appendChild(div);
+          });
+        });
+
+      } catch (err) {
+        container.textContent = '⚠️ Ошибка загрузки данных.';
+        console.error(err);
+      }
+    }
+
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+      });
+    }
+
+    loadEntries();
+  </script>
+</body>
+</html>
