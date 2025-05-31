@@ -55,13 +55,15 @@
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.2s, opacity 0.2s; /* 👈 вот сюда */
+      transition: background-color 0.2s, opacity 0.2s;
     }
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-  opacity: 0.6; /* 👈 делает кнопку визуально полупрозрачной */
-}
+
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
     button:hover {
       background-color: #005fcc;
     }
@@ -81,168 +83,166 @@ button:disabled {
 <body>
   <button onclick="goBack()">⬅️ Назад</button>
   <div class="controls">
-    <button id="btnEntries" onclick="showSection('entries')">🕘 История записей</button>
-    <button id="btnVacations" onclick="showSection('vacations')">🏖 История отпусков</button>
+    <button id="btnEntries" onclick="showSection('entries')" disabled>🕘 История записей</button>
+    <button id="btnVacations" onclick="showSection('vacations')" disabled>🏖 История отпусков</button>
   </div>
   <h2 id="sectionTitle">Пожалуйста, выбери раздел</h2>
   <div id="content" class="loading">Загрузка...</div>
 
- <script>
-  const tg = window.Telegram.WebApp;
-  tg.expand();
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-  document.body.style.backgroundColor = tg.themeParams.bg_color || '#f9f9f9';
-  document.body.style.color = tg.themeParams.text_color || '#333';
+    document.body.style.backgroundColor = tg.themeParams.bg_color || '#f9f9f9';
+    document.body.style.color = tg.themeParams.text_color || '#333';
 
-  const content = document.getElementById('content');
-  const title = document.getElementById('sectionTitle');
-  const btnEntries = document.getElementById('btnEntries');
-  const btnVacations = document.getElementById('btnVacations');
+    const content = document.getElementById('content');
+    const title = document.getElementById('sectionTitle');
+    const btnEntries = document.getElementById('btnEntries');
+    const btnVacations = document.getElementById('btnVacations');
 
-  let fullData = null;
-  let currentSection = null; // 🆕 Что выбрал пользователь
+    let fullData = null;
+    let currentSection = null;
 
-  function getTelegramIdFromURL() {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('telegram_id');
-  }
-
- async function fetchData() {
-   btnEntries.disabled = true;
-btnVacations.disabled = true;
-   
-  const telegram_id = getTelegramIdFromURL();
-  if (!telegram_id) {
-    content.textContent = '❌ Не указан Telegram ID в URL.';
-    return;
-  }
-
-  try {
-    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id })
-    });
-
-    if (!res.ok) {
-      content.textContent = '⚠️ Сервер вернул ошибку.';
-      return;
+    function getTelegramIdFromURL() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('telegram_id');
     }
 
-    const data = await res.json();
+    async function fetchData() {
+      btnEntries.disabled = true;
+      btnVacations.disabled = true;
 
-    if (!data || !Array.isArray(data) || !data[0]) {
-      content.textContent = 'Нет данных.';
-      return;
+      const telegram_id = getTelegramIdFromURL();
+      if (!telegram_id) {
+        content.textContent = '❌ Не указан Telegram ID в URL.';
+        return;
+      }
+
+      try {
+        const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id })
+        });
+
+        if (!res.ok) {
+          content.textContent = '⚠️ Сервер вернул ошибку.';
+          return;
+        }
+
+        const data = await res.json();
+        console.log('✅ Полученные данные:', data);
+
+        if (!data || !Array.isArray(data) || !data[0]) {
+          content.textContent = 'Нет данных.';
+          return;
+        }
+
+        fullData = data[0];
+        btnEntries.disabled = false;
+        btnVacations.disabled = false;
+
+        if (currentSection) {
+          showSection(currentSection);
+        } else {
+          content.textContent = 'Выберите раздел выше.';
+        }
+      } catch (err) {
+        content.textContent = '⚠️ Ошибка загрузки данных.';
+        console.error(err);
+      }
     }
 
-    fullData = data[0];
-
-    btnEntries.disabled = false;
-btnVacations.disabled = false;
-
-    if (currentSection) {
-      showSection(currentSection);
-    } else {
-      content.textContent = 'Выберите раздел выше.';
+    function formatDate(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        weekday: 'long'
+      });
     }
 
-  } catch (err) {
-    content.textContent = '⚠️ Ошибка загрузки данных.';
-    console.error(err);
-  }
-}
+    function showSection(section) {
+      currentSection = section;
+      btnEntries.classList.toggle('active', section === 'entries');
+      btnVacations.classList.toggle('active', section === 'vacations');
 
-  function formatDate(dateStr) {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      weekday: 'long'
-    });
-  }
+      if (!fullData) {
+        content.textContent = '⏳ Данные ещё загружаются...';
+        return;
+      }
 
-  function showSection(section) {
-    currentSection = section; // 🆕 сохраняем выбор
-    btnEntries.classList.toggle('active', section === 'entries');
-    btnVacations.classList.toggle('active', section === 'vacations');
-
-    if (!fullData) {
-      content.textContent = '⏳ Данные ещё загружаются...';
-      return;
+      if (section === 'entries') {
+        title.textContent = '🕘 История записей';
+        renderEntries(fullData.time_entries_by_date);
+      } else if (section === 'vacations') {
+        title.textContent = '🏖 История отпусков';
+        renderVacations(fullData.vacations);
+      }
     }
 
-    if (section === 'entries') {
-      title.textContent = '🕘 История записей';
-      renderEntries(fullData.time_entries_by_date);
-    } else if (section === 'vacations') {
-      title.textContent = '🏖 История отпусков';
-      renderVacations(fullData.vacations);
+    function renderEntries(entriesByDate) {
+      if (!Array.isArray(entriesByDate) || entriesByDate.length === 0) {
+        content.innerHTML = '<p>Нет записей о часах.</p>';
+        return;
+      }
+
+      content.innerHTML = '';
+      entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      entriesByDate.forEach(group => {
+        if (!Array.isArray(group.entries) || group.entries.length === 0) return;
+
+        const dateEl = document.createElement('div');
+        dateEl.className = 'entry-date';
+        dateEl.textContent = formatDate(group.date);
+        content.appendChild(dateEl);
+
+        group.entries.forEach(e => {
+          const div = document.createElement('div');
+          div.className = 'entry';
+
+          const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
+          const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
+
+          div.innerHTML = `
+            <div class="project">${name}</div>
+            <div class="time">${hours} ч</div>
+          `;
+
+          content.appendChild(div);
+        });
+      });
     }
-  }
 
-function renderEntries(entriesByDate) {
-  if (!entriesByDate || entriesByDate.length === 0) {
-    content.innerHTML = '<p>Нет записей о часах.</p>';
-    return;
-  }
+    function renderVacations(vacations) {
+      if (!Array.isArray(vacations) || vacations.length === 0) {
+        content.innerHTML = '<p>Нет записей об отпусках.</p>';
+        return;
+      }
 
-  content.innerHTML = '';
-  entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
+      content.innerHTML = '';
+      vacations.forEach(v => {
+        const start = v.start_date ? formatDate(v.start_date) : '—';
+        const end = v.end_date ? formatDate(v.end_date) : '—';
 
-  entriesByDate.forEach(group => {
-    const dateEl = document.createElement('div');
-    dateEl.className = 'entry-date';
-    dateEl.textContent = formatDate(group.date);
-    content.appendChild(dateEl);
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <div class="project">Отпуск</div>
+          <div class="time">${start} – ${end}</div>
+        `;
+        content.appendChild(div);
+      });
+    }
 
-    group.entries.forEach(e => {
-      console.log('entry:', e); // 🐞 отладка
+    function goBack() {
+      window.parent.postMessage('close-history', '*');
+    }
 
-      const div = document.createElement('div');
-      div.className = 'entry';
-
-      // Fallback: если нет project_name — используем ID
-      const name = e.project_name ?? `Проект #${e.project_id}`;
-      const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
-
-      div.innerHTML = `
-        <div class="project">${name}</div>
-        <div class="time">${hours} ч</div>
-      `;
-
-      content.appendChild(div);
-    });
-  });
-}
-
-function renderVacations(vacations) {
-  if (!Array.isArray(vacations) || vacations.length === 0) {
-    content.innerHTML = '<p>Нет записей об отпусках.</p>';
-    return;
-  }
-
-  content.innerHTML = '';
-  vacations.forEach(v => {
-    const start = v.start_date ? formatDate(v.start_date) : '—';
-    const end = v.end_date ? formatDate(v.end_date) : '—';
-
-    const div = document.createElement('div');
-    div.className = 'entry';
-    div.innerHTML = `
-      <div class="project">Отпуск</div>
-      <div class="time">${start} – ${end}</div>
-    `;
-    content.appendChild(div);
-  });
-}
-
-  function goBack() {
-    window.parent.postMessage('close-history', '*');
-  }
-
-  fetchData();
-</script>
+    fetchData();
+  </script>
 </body>
 </html>
