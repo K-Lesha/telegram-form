@@ -168,50 +168,61 @@
     }
   }
 
-  function renderEntries(entriesByDate) {
-    if (!entriesByDate || entriesByDate.length === 0) {
-      content.innerHTML = '<p>Нет записей о часах.</p>';
-      return;
-    }
-
-    content.innerHTML = '';
-    entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
-    entriesByDate.forEach(group => {
-      const dateEl = document.createElement('div');
-      dateEl.className = 'entry-date';
-      dateEl.textContent = formatDate(group.date);
-      content.appendChild(dateEl);
-
-      group.entries.forEach(e => {
-        const div = document.createElement('div');
-        div.className = 'entry';
-        const projectLabel = e.project_name || `Проект #${e.project_id}`;
-div.innerHTML = `
-  <div class="project">${projectLabel}</div>
-  <div class="time">${e.hours.toFixed(2)} ч</div>
-`;
-        content.appendChild(div);
-      });
-    });
+function renderEntries(entriesByDate) {
+  if (!entriesByDate || entriesByDate.length === 0) {
+    content.innerHTML = '<p>Нет записей о часах.</p>';
+    return;
   }
 
-  function renderVacations(vacations) {
-    if (!vacations || vacations.length === 0) {
-      content.innerHTML = '<p>Нет записей об отпусках.</p>';
-      return;
-    }
+  content.innerHTML = '';
+  entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    content.innerHTML = '';
-    vacations.forEach(v => {
+  entriesByDate.forEach(group => {
+    const dateEl = document.createElement('div');
+    dateEl.className = 'entry-date';
+    dateEl.textContent = formatDate(group.date);
+    content.appendChild(dateEl);
+
+    group.entries.forEach(e => {
+      console.log('entry:', e); // 🐞 отладка
+
       const div = document.createElement('div');
       div.className = 'entry';
+
+      // Fallback: если нет project_name — используем ID
+      const name = e.project_name ?? `Проект #${e.project_id}`;
+      const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
+
       div.innerHTML = `
-        <div class="project">Отпуск</div>
-        <div class="time">${formatDate(v.start_date)} – ${formatDate(v.end_date)}</div>
+        <div class="project">${name}</div>
+        <div class="time">${hours} ч</div>
       `;
+
       content.appendChild(div);
     });
+  });
+}
+
+function renderVacations(vacations) {
+  if (!Array.isArray(vacations) || vacations.length === 0) {
+    content.innerHTML = '<p>Нет записей об отпусках.</p>';
+    return;
   }
+
+  content.innerHTML = '';
+  vacations.forEach(v => {
+    const start = v.start_date ? formatDate(v.start_date) : '—';
+    const end = v.end_date ? formatDate(v.end_date) : '—';
+
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <div class="project">Отпуск</div>
+      <div class="time">${start} – ${end}</div>
+    `;
+    content.appendChild(div);
+  });
+}
 
   function goBack() {
     window.parent.postMessage('close-history', '*');
