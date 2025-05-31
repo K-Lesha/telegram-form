@@ -154,8 +154,9 @@ document.body.style.color = tg.themeParams.text_color || '#333';
       });
     }
 
-    function goBack() {
-  window.history.back(); // возвращает на предыдущую страницу WebApp'а
+function goBack() {
+  // Посылаем сообщение родителю
+  window.parent.postMessage('close-history', '*');
 }
 
     loadEntries();
