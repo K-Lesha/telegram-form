@@ -110,49 +110,54 @@
     }
 
     async function fetchData() {
-      btnEntries.disabled = true;
-      btnVacations.disabled = true;
+  btnEntries.disabled = true;
+  btnVacations.disabled = true;
 
-      const telegram_id = getTelegramIdFromURL();
-      if (!telegram_id) {
-        content.textContent = '❌ Не указан Telegram ID в URL.';
-        return;
-      }
+  const telegram_id = getTelegramIdFromURL();
+  if (!telegram_id) {
+    content.textContent = '❌ Не указан Telegram ID в URL.';
+    return;
+  }
 
-      try {
-        const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telegram_id })
-        });
+  try {
+    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id })
+    });
 
-        if (!res.ok) {
-          content.textContent = '⚠️ Сервер вернул ошибку.';
-          return;
-        }
-
-        const data = await res.json();
-        console.log('✅ Полученные данные:', data);
-
-        if (!data || !Array.isArray(data) || !data[0]) {
-          content.textContent = 'Нет данных.';
-          return;
-        }
-
-        fullData = data[0];
-        btnEntries.disabled = false;
-        btnVacations.disabled = false;
-
-        if (currentSection) {
-          showSection(currentSection);
-        } else {
-          content.textContent = 'Выберите раздел выше.';
-        }
-      } catch (err) {
-        content.textContent = '⚠️ Ошибка загрузки данных.';
-        console.error(err);
-      }
+    if (!res.ok) {
+      content.textContent = '⚠️ Сервер вернул ошибку.';
+      return;
     }
+
+    const data = await res.json();
+
+    // ✅ Прямо показываем на экране, что пришло
+    content.innerHTML = `
+      <h3>📦 Полученные данные:</h3>
+      <pre style="white-space: pre-wrap; word-break: break-word;">${JSON.stringify(data, null, 2)}</pre>
+    `;
+
+    if (!data || !Array.isArray(data) || !data[0]) {
+      content.innerHTML += '<p style="color:red;">⚠️ Структура данных неверна или пустая.</p>';
+      return;
+    }
+
+    fullData = data[0];
+    btnEntries.disabled = false;
+    btnVacations.disabled = false;
+
+    if (currentSection) {
+      showSection(currentSection);
+    } else {
+      content.innerHTML += '<p>Выберите раздел выше.</p>';
+    }
+  } catch (err) {
+    content.textContent = '⚠️ Ошибка загрузки данных.';
+    content.innerHTML += `<pre>${err}</pre>`;
+  }
+}
 
     function formatDate(dateStr) {
       const d = new Date(dateStr);
