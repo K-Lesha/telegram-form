@@ -802,7 +802,7 @@ function confirmSubmit() {
 const selectedDateStr = new Date(selectedDay).toISOString().split('T')[0];
 const todayStr = new Date().toISOString().split('T')[0];
 
-if (selectedDateStr > todayStr) {
+if (selectedDay > todayStr) {
   alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
   return;
 }
