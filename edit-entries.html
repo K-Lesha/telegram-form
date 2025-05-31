@@ -44,11 +44,33 @@
       font-style: italic;
       color: #888;
     }
+
+button {
+  display: inline-block;
+  padding: 10px 16px;
+  margin: 6px 4px;
+  background-color: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #005fcc;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
   </style>
 </head>
 <body>
-
-  <h2>🕘 Записи пользователя</h2>
+<button onclick="goBack()">⬅️ Назад</button>
+<h2>🕘 Записи пользователя</h2> 
   <div id="entries" class="loading">Загружаем данные...</div>
 
   <script>
@@ -131,6 +153,14 @@ document.body.style.color = tg.themeParams.text_color || '#333';
         weekday: 'long'
       });
     }
+
+    function goBack() {
+  if (tg?.close) {
+    tg.close(); // закрывает WebApp
+  } else {
+    window.history.back(); // на всякий случай fallback
+  }
+}
 
     loadEntries();
   </script>
