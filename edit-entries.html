@@ -142,12 +142,12 @@ rawBlock.innerHTML = `
 document.body.appendChild(rawBlock);
 
 // только теперь проверяем
-if (!data || !Array.isArray(data) || !data[0]) {
-  content.innerHTML = '<p style="color:red;">⚠️ Структура данных неверна или пустая.</p>';
+if (!data || typeof data !== 'object') {
+  content.innerHTML += '<p style="color:red;">⚠️ Данные не являются объектом.</p>';
   return;
 }
 
-    fullData = data[0];
+fullData = data;
     btnEntries.disabled = false;
     btnVacations.disabled = false;
 
