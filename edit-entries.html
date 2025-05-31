@@ -251,8 +251,8 @@ saveBtn.onclick = () => saveUpdatedEntries(group.date, updatedEntries, saveBtn);
 }
 
 async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
-      saveBtn.disabled = true;
-      
+  saveBtn.disabled = true;
+
   const entries = updatedEntries.map(e => {
     const val = parseFloat(document.getElementById(e.inputId).value);
     return {
@@ -261,18 +261,20 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
     };
   });
 
+  const telegram_id = getTelegramIdFromURL();
+
   try {
     const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-time-entry-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, entries })
+      body: JSON.stringify({ date, entries, telegram_id })
     });
 
-if (!res.ok) {
-  const errorText = await res.text(); // если сервер что-то вернул
-  alert('Ошибка сохранения данных: ' + errorText);
-  return;
-}
+    if (!res.ok) {
+      const errorText = await res.text();
+      alert('Ошибка сохранения данных: ' + errorText);
+      return;
+    }
 
     alert('✅ Сохранено!');
     fetchData(); // перезагрузить отображение
