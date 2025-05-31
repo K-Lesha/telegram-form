@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <title>История записей</title>
   <style>
     body {
@@ -51,6 +52,13 @@
   <div id="entries" class="loading">Загружаем данные...</div>
 
   <script>
+    const tg = window.Telegram.WebApp;
+tg.expand(); // чтобы страница заняла больше места
+
+// Альтернативно можешь установить светлую/тёмную тему:
+document.body.style.backgroundColor = tg.themeParams.bg_color || '#f9f9f9';
+document.body.style.color = tg.themeParams.text_color || '#333';
+    
     const container = document.getElementById('entries');
 
     function getTelegramIdFromURL() {
