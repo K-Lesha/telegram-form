@@ -131,22 +131,21 @@
       return;
     }
 
-    const data = await res.json();
+const data = await res.json();
 
-    // ✅ Прямо показываем на экране, что пришло
-   // Показываем отладочную информацию в отдельном контейнере
+// ❗ Показываем данные в любом случае (даже если структура неправильная)
 const rawBlock = document.createElement('div');
 rawBlock.innerHTML = `
-  <h3>📦 Полученные данные:</h3>
+  <h3>📦 Сырые данные (debug):</h3>
   <pre style="white-space: pre-wrap; word-break: break-word; background:#eee; padding:10px; border-radius:6px;">${JSON.stringify(data, null, 2)}</pre>
 `;
-document.body.appendChild(rawBlock); // добавляем в самый низ страницы, не мешает основному контенту
-    
+document.body.appendChild(rawBlock);
 
-    if (!data || !Array.isArray(data) || !data[0]) {
-      content.innerHTML += '<p style="color:red;">⚠️ Структура данных неверна или пустая.</p>';
-      return;
-    }
+// только теперь проверяем
+if (!data || !Array.isArray(data) || !data[0]) {
+  content.innerHTML = '<p style="color:red;">⚠️ Структура данных неверна или пустая.</p>';
+  return;
+}
 
     fullData = data[0];
     btnEntries.disabled = false;
