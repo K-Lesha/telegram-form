@@ -118,14 +118,6 @@
       });
 
       const data = await res.json();
-
-      const pre = document.createElement('pre');
-pre.style.background = '#eee';
-pre.style.padding = '10px';
-pre.style.borderRadius = '8px';
-pre.textContent = JSON.stringify(data, null, 2);
-document.body.appendChild(pre);
-
       
       if (!Array.isArray(data) || data.length === 0) {
         content.textContent = 'Нет данных.';
@@ -193,10 +185,11 @@ document.body.appendChild(pre);
       group.entries.forEach(e => {
         const div = document.createElement('div');
         div.className = 'entry';
-        div.innerHTML = `
-          <div class="project">Проект #${e.project_id}</div>
-          <div class="time">${e.hours.toFixed(2)} ч</div>
-        `;
+        const projectLabel = e.project_name || `Проект #${e.project_id}`;
+div.innerHTML = `
+  <div class="project">${projectLabel}</div>
+  <div class="time">${e.hours.toFixed(2)} ч</div>
+`;
         content.appendChild(div);
       });
     });
