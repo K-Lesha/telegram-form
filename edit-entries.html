@@ -100,6 +100,8 @@
     const title = document.getElementById('sectionTitle');
     const btnEntries = document.getElementById('btnEntries');
     const btnVacations = document.getElementById('btnVacations');
+    let userId = null; // Глобально
+
 
     let fullData = null;
     let currentSection = null;
@@ -134,6 +136,8 @@
 const data = await res.json();
 
 fullData = data;
+      userId = data.id; // <-- вот здесь сохраняем
+
     btnEntries.disabled = false;
     btnVacations.disabled = false;
 
@@ -261,13 +265,16 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
     };
   });
 
-  const telegram_id = getTelegramIdFromURL();
+  if (!userId) {
+  alert('❌ Не удалось определить ID пользователя');
+  return;
+}
 
   try {
     const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-time-entry-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, entries, telegram_id })
+      body: JSON.stringify({ date, entries, user_id: userId })
     });
 
     if (!res.ok) {
