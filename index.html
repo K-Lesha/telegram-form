@@ -360,14 +360,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
 
-function goToHistory() {
-  if (telegram_id && telegram_id !== '—') {
-    const url = `https://k-lesha.github.io/edit-entries?telegram_id=${telegram_id}`;
-    tg.openLink(url, { try_instant_view: true });
-  } else {
-    alert('Telegram ID не найден. Пожалуйста, попробуй позже.');
-  }
-}
+
     
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -406,9 +399,9 @@ function goToHistory() {
       result.innerHTML = '';
       const first = Array.isArray(data) ? data[0] : data;
 
-      activeProjects = first?.active_projects || [];
+activeProjects = data?.active_projects || []; // ✅ напрямую из объекта, а не из массива
 
-              result.innerHTML = '<h3>Выбери день:</h3>';
+ result.innerHTML = '<h3>Выбери день:</h3>';
 
       
 if (data.unfilled_dates?.length) {
@@ -443,8 +436,8 @@ function closeCustomDateModal() {
   document.getElementById('customDateModal').style.display = 'none';
   document.getElementById('customDateInput').value = '';
 }
-
-function confirmCustomDate() {
+    
+async function confirmCustomDate() {
   const input = document.getElementById('customDateInput').value;
   if (!input) {
     alert('Пожалуйста, выбери дату.');
@@ -452,6 +445,10 @@ function confirmCustomDate() {
   }
 
   closeCustomDateModal();
+
+  // Заново подгружаем проекты перед отрисовкой
+  await loadUserData();
+
   renderFormForDay(input);
 }
 
@@ -825,6 +822,15 @@ function confirmSubmit() {
 
   const btn = document.getElementById('saveButton');
   finalSubmitForm(btn);
+}
+
+    function goToHistory() {
+  if (telegram_id && telegram_id !== '—') {
+    const url = `https://k-lesha.github.io/edit-entries?telegram_id=${telegram_id}`;
+    tg.openLink(url, { try_instant_view: true });
+  } else {
+    alert('Telegram ID не найден. Пожалуйста, попробуй позже.');
+  }
 }
 
 function closeConfirmation() {
