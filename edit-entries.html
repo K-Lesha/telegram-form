@@ -292,25 +292,96 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
 }
 
     function renderVacations(vacations) {
-      if (!Array.isArray(vacations) || vacations.length === 0) {
-        content.innerHTML = '<p>Нет записей об отпусках.</p>';
-        return;
-      }
+  if (!Array.isArray(vacations) || vacations.length === 0) {
+    content.innerHTML = '<p>Нет записей об отпусках.</p>';
+    return;
+  }
 
-      content.innerHTML = '';
-      vacations.forEach(v => {
-        const start = v.start_date ? formatDate(v.start_date) : '—';
-        const end = v.end_date ? formatDate(v.end_date) : '—';
+  content.innerHTML = '';
+  vacations.forEach((v, index) => {
+    const start = v.start_date || '';
+    const end = v.end_date || '';
 
-        const div = document.createElement('div');
-        div.className = 'entry';
-        div.innerHTML = `
-          <div class="project">Отпуск</div>
-          <div class="time">${start} – ${end}</div>
-        `;
-        content.appendChild(div);
-      });
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+      <div class="project">Отпуск</div>
+      <div class="time">${formatDate(start)} – ${formatDate(end)}</div>
+    `;
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ Редактировать';
+    editBtn.onclick = () => enableVacationEdit(index, start, end);
+    div.appendChild(editBtn);
+
+    content.appendChild(div);
+  });
+}
+
+    function enableVacationEdit(index, startDate, endDate) {
+  content.innerHTML = '';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'entry-date';
+  dateEl.textContent = `Редактирование отпуска #${index + 1}`;
+  content.appendChild(dateEl);
+
+  const startInput = document.createElement('input');
+  startInput.type = 'date';
+  startInput.value = startDate;
+  startInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
+
+  const endInput = document.createElement('input');
+  endInput.type = 'date';
+  endInput.value = endDate;
+  endInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
+
+  content.appendChild(document.createTextNode('Дата начала:'));
+  content.appendChild(document.createElement('br'));
+  content.appendChild(startInput);
+  content.appendChild(document.createElement('br'));
+  content.appendChild(document.createTextNode('Дата окончания:'));
+  content.appendChild(document.createElement('br'));
+  content.appendChild(endInput);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '💾 Сохранить';
+  saveBtn.onclick = () => saveVacationUpdate(startInput.value, endInput.value, saveBtn);
+  content.appendChild(document.createElement('br'));
+  content.appendChild(saveBtn);
+}
+    async function saveVacationUpdate(start_date, end_date, btn) {
+  btn.disabled = true;
+
+  if (!userId) {
+    alert('❌ Не удалось определить ID пользователя');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-vacation-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        start_date,
+        end_date
+      })
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      alert('Ошибка при сохранении: ' + error);
+      return;
     }
+
+    alert('✅ Отпуск обновлён!');
+    fetchData(); // обновим список
+  } catch (err) {
+    alert('❌ Ошибка соединения.');
+    console.error(err);
+  }
+}
 
     function goBack() {
       window.parent.postMessage('close-history', '*');
