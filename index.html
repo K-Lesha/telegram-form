@@ -827,7 +827,7 @@ const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() ===
     function goToHistory() {
   if (telegram_id && telegram_id !== '—') {
     const url = `https://k-lesha.github.io/telegram-form/edit-entries.html?telegram_id=${telegram_id}`;
-    tg.openLink(url, { try_instant_view: true });
+    tg.openTelegramLink(url);
   } else {
     alert('Telegram ID не найден. Пожалуйста, попробуй позже.');
   }
