@@ -155,7 +155,6 @@ document.body.style.color = tg.themeParams.text_color || '#333';
     }
 
 function goBack() {
-  // Посылаем сообщение родителю
   window.parent.postMessage('close-history', '*');
 }
 
