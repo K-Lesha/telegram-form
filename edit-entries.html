@@ -55,9 +55,13 @@
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
-      transition: background-color 0.2s;
+      transition: background-color 0.2s, opacity 0.2s; /* 👈 вот сюда */
     }
-
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6; /* 👈 делает кнопку визуально полупрозрачной */
+}
     button:hover {
       background-color: #005fcc;
     }
@@ -103,41 +107,51 @@
     return params.get('telegram_id');
   }
 
-  async function fetchData() {
-    const telegram_id = getTelegramIdFromURL();
-    if (!telegram_id) {
-      content.textContent = '❌ Не указан Telegram ID в URL.';
+ async function fetchData() {
+   btnEntries.disabled = true;
+btnVacations.disabled = true;
+   
+  const telegram_id = getTelegramIdFromURL();
+  if (!telegram_id) {
+    content.textContent = '❌ Не указан Telegram ID в URL.';
+    return;
+  }
+
+  try {
+    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ telegram_id })
+    });
+
+    if (!res.ok) {
+      content.textContent = '⚠️ Сервер вернул ошибку.';
       return;
     }
 
-    try {
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegram_id })
-      });
+    const data = await res.json();
 
-      const data = await res.json();
-      
-      if (!Array.isArray(data) || data.length === 0) {
-        content.textContent = 'Нет данных.';
-        return;
-      }
-
-      fullData = data[0];
-
-      // 🧠 если пользователь уже выбрал раздел — сразу его показываем
-      if (currentSection) {
-        showSection(currentSection);
-      } else {
-        content.textContent = 'Выберите раздел выше.';
-      }
-
-    } catch (err) {
-      content.textContent = '⚠️ Ошибка загрузки данных.';
-      console.error(err);
+    if (!data || !Array.isArray(data) || !data[0]) {
+      content.textContent = 'Нет данных.';
+      return;
     }
+
+    fullData = data[0];
+
+    btnEntries.disabled = false;
+btnVacations.disabled = false;
+
+    if (currentSection) {
+      showSection(currentSection);
+    } else {
+      content.textContent = 'Выберите раздел выше.';
+    }
+
+  } catch (err) {
+    content.textContent = '⚠️ Ошибка загрузки данных.';
+    console.error(err);
   }
+}
 
   function formatDate(dateStr) {
     const d = new Date(dateStr);
