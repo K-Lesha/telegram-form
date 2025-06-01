@@ -81,7 +81,6 @@
   </style>
 </head>
 <body>
-  <button onclick="goBack()">⬅️ Назад</button>
   <div class="controls">
     <button id="btnEntries" onclick="showSection('entries')" disabled>🕘 История записей</button>
     <button id="btnVacations" onclick="showSection('vacations')" disabled>🏖 История отпусков</button>
@@ -106,21 +105,18 @@
     let fullData = null;
     let currentSection = null;
 
-    function getTelegramIdFromURL() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('telegram_id');
-    }
+
 
     async function fetchData() {
   btnEntries.disabled = true;
   btnVacations.disabled = true;
 
-  const telegram_id = getTelegramIdFromURL();
-  if (!telegram_id) {
-    content.textContent = '❌ Не указан Telegram ID в URL.';
-    return;
-  }
+let telegram_id = tg?.initDataUnsafe?.user?.id;
 
+if (!telegram_id) {
+  content.textContent = '❌ Не удалось получить Telegram ID.';
+  return;
+}      
   try {
     const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
       method: 'POST',
@@ -385,11 +381,6 @@ editBtn.onclick = () => enableVacationEdit(v.id, start, end);
     console.error(err);
   }
 }
-
-    function goBack() {
-      window.parent.postMessage('close-history', '*');
-    }
-
     fetchData();
   </script>
 </body>
