@@ -826,8 +826,19 @@ function closeConfirmation() {
         body: JSON.stringify(payload)
       });
 
-      const result = await res.json();
+let result;
 
+      try {
+  result = await res.json();
+} catch (err) {
+  const text = await res.text();
+  alert(`❌ Сервер вернул не-JSON. Ответ:\n${text}`);
+  button.disabled = false;
+  button.textContent = '📝 Записать';
+  form.removeChild(loader);
+  return;
+}
+      
       if (result.success) {
         const check = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-unfilled-days', {
           method: 'POST',
@@ -849,11 +860,11 @@ function closeConfirmation() {
           await loadUserData();
         }
       } else {
-        const errorMessage = result.reason || 'Ошибка при сохранении';
-        alert(`Ошибка: ${errorMessage}`);
-        form.removeChild(loader);
-        button.disabled = false;
-        button.textContent = '📝 Записать';
+  const errorDetails = typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
+  alert(`❌ Ошибка при сохранении:\n${errorDetails}`);
+  button.disabled = false;
+  button.textContent = '📝 Записать';
+  form.removeChild(loader);
       }
     }
 
