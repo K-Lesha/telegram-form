@@ -144,7 +144,7 @@ let currentUserId = null;
       const telegram_id = tg?.initDataUnsafe?.user?.id || 217500012;
       console.log('Отправка запроса с telegram_id:', telegram_id);
 
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/leads-form', {
+      const res = await fetch('https://betters-technology.site/webhook/leads-form', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id })
@@ -252,7 +252,7 @@ nameSpan.style.color = '#007aff';
     };
 
     try {
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/catch-user-project-status', {
+      const res = await fetch('https://betters-technology.site/webhook/catch-user-project-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -329,7 +329,7 @@ nameSpan.style.color = '#007aff';
         project_status: isArchived ? 'archive' : 'active'
       };
 
-      const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/update-project-status', {
+      const res = await fetch('https://betters-technology.site/webhook/update-project-status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -385,7 +385,7 @@ window.onclick = function(event) {
   };
 
   try {
-    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/catch-member-hours', {
+    const res = await fetch('https://betters-technology.site/webhook/catch-member-hours', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
