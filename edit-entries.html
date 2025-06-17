@@ -118,7 +118,7 @@ if (!telegram_id) {
   return;
 }      
   try {
-    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/fetch-timentries', {
+    const res = await fetch('https://betters-technology.site/webhook/fetch-timentries', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ telegram_id })
@@ -267,7 +267,7 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
 }
 
   try {
-    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-time-entry-update', {
+    const res = await fetch('https://betters-technology.site/webhook/get-time-entry-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, entries, user_id: userId })
@@ -357,7 +357,7 @@ editBtn.onclick = () => enableVacationEdit(v.id, start, end);
   }
 
   try {
-    const res = await fetch('https://nip.setters-n8n.infinityfreeapp.com/webhook/get-vacation-update', {
+    const res = await fetch('https://betters-technology.site/webhook/get-vacation-update', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
