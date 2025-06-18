@@ -371,18 +371,6 @@
 
       activeProjects = data?.active_projects || []; // ✅ напрямую из объекта, а не из массива
 
-        // ✅ Если вообще нет незаполненных дней
-//  if (dates.length === 0) {
- //   const msg = document.createElement('p');
- //   msg.textContent = 'Все дни заполнены 🤝';
-//    result.appendChild(msg);
-
-    // Удаляем форму, если открыта
- //   document.getElementById('formBlock').innerHTML = '';
- //   return;
-//  }
-              // ✅ отрисовываем список дней
-
       result.innerHTML = '<h3>Выбери день:</h3>';
       if (data.unfilled_dates?.length) {
         data.unfilled_dates.forEach(date => {
@@ -395,21 +383,20 @@
         const msg = document.createElement('p');
         msg.textContent = 'Все дни заполнены 🤝';
         result.appendChild(msg);
+        document.getElementById('formBlock').innerHTML = '';
       }
 
 // Всегда добавляем кнопку "Другой день"
-const otherBtn = document.createElement('button');
-otherBtn.textContent = '📅 Другой день';
-otherBtn.onclick = promptCustomDate;
-result.appendChild(otherBtn);
-
-      
+      const otherBtn = document.createElement('button');
+      otherBtn.textContent = '📅 Другой день';
+      otherBtn.onclick = promptCustomDate;
+      result.appendChild(otherBtn);
     }
 
     function promptCustomDate() {
-const input = document.getElementById('customDateInput');
-input.value = new Date().toISOString().split('T')[0];
-document.getElementById('customDateModal').style.display = 'flex';
+      const input = document.getElementById('customDateInput');
+      input.value = new Date().toISOString().split('T')[0];
+      document.getElementById('customDateModal').style.display = 'flex';
     }
 
 function closeCustomDateModal() {
