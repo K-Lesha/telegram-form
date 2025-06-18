@@ -369,23 +369,33 @@
       const result = document.getElementById('result');
       result.innerHTML = '';
 
-activeProjects = data?.active_projects || []; // ✅ напрямую из объекта, а не из массива
+      activeProjects = data?.active_projects || []; // ✅ напрямую из объекта, а не из массива
 
- result.innerHTML = '<h3>Выбери день:</h3>';
+        // ✅ Если вообще нет незаполненных дней
+  if (dates.length === 0) {
+    const msg = document.createElement('p');
+    msg.textContent = 'Все дни заполнены 🤝';
+    result.appendChild(msg);
 
-      
-if (data.unfilled_dates?.length) {
-  data.unfilled_dates.forEach(date => {
-    const btn = document.createElement('button');
-    btn.textContent = formatDate(date);
-    btn.onclick = () => renderFormForDay(date);
-    result.appendChild(btn);
-  });
-} else {
-  const msg = document.createElement('p');
-  msg.textContent = 'Все дни заполнены 🤝';
-  result.appendChild(msg);
-}
+    // Удаляем форму, если открыта
+    document.getElementById('formBlock').innerHTML = '';
+    return;
+  }
+              // ✅ отрисовываем список дней
+
+      result.innerHTML = '<h3>Выбери день:</h3>';
+      if (data.unfilled_dates?.length) {
+        data.unfilled_dates.forEach(date => {
+          const btn = document.createElement('button');
+          btn.textContent = formatDate(date);
+          btn.onclick = () => renderFormForDay(date);
+          result.appendChild(btn);
+        });
+      } else {
+        const msg = document.createElement('p');
+        msg.textContent = 'Все дни заполнены 🤝';
+        result.appendChild(msg);
+      }
 
 // Всегда добавляем кнопку "Другой день"
 const otherBtn = document.createElement('button');
@@ -792,17 +802,17 @@ function closeConfirmation() {
     async function finalSubmitForm(button) {
       const form = document.getElementById('formBlock');
       const hours = Array.from(form.querySelectorAll('[data-project-id]')).map(container => {
-  const projectId = container.dataset.projectId;
-  const h = parseInt(container.dataset.hours || 0);
-  const m = parseInt(container.dataset.minutes || 0);
-  const projectName = container.querySelector('.project-title a')?.textContent || 'Без названия';
+        const projectId = container.dataset.projectId;
+        const h = parseInt(container.dataset.hours || 0);
+        const m = parseInt(container.dataset.minutes || 0);
+        const projectName = container.querySelector('.project-title a')?.textContent || 'Без названия';
 
-  return {
-    project_id: projectId,
-    project_name: projectName,
-    value: h + m / 60
-  };
-});
+        return {
+          project_id: projectId,
+          project_name: projectName,
+          value: h + m / 60
+        };
+      });
 
       const payload = {
           telegram_id,
@@ -826,18 +836,19 @@ function closeConfirmation() {
         body: JSON.stringify(payload)
       });
 
-let result;
+      let result;
 
       try {
-  result = await res.json();
-} catch (err) {
-  const text = await res.text();
-  alert(`❌ Сервер вернул не-JSON. Ответ:\n${text}`);
-  button.disabled = false;
-  button.textContent = '📝 Записать';
-  form.removeChild(loader);
-  return;
-}
+        result = await res.json();
+      } catch (err) {
+        const text = await res.text();
+        alert(`❌ Сервер вернул не-JSON. Ответ:\n${text}`);
+        button.disabled = false;
+        button.textContent = '📝 Записать';
+        form.removeChild(loader);
+
+        return;
+      }
       
       if (result.success) {
         const check = await fetch('https://betters-technology.site/webhook/get-unfilled-days', {
