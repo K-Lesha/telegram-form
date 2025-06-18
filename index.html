@@ -766,8 +766,14 @@ if (selectedDay > todayStr) {
   
 const selectedDateObj = new Date(selectedDay); // ← Добавь эту строку
 const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
+
+  const exceptions = [504330296];
+
+// Получаем telegram_id текущего пользователя (тебе надо убедиться, что telegram_id правильный тип, число)
+let telegram_id = Number(tg.initDataUnsafe.user.id);  // пример, если у тебя так получаются данные
+
   
-  if (!isWeekend && totalHours < 8) {
+  if (!isWeekend && totalHours < 8 && !exceptions.includes(telegram_id)) {
     alert('⚠️ Ты заполнил(а) менее 8 часов. Мы не можем принять отчёт. Пожалуйста, дозаполни!');
     return; // ❌ не отправляем
   }
