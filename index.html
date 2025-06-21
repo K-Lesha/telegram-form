@@ -314,7 +314,7 @@
     <h3>Подтверждение</h3>
     <div id="confirmationList" style="text-align: left; margin-bottom: 16px;"></div>
     <button onclick="confirmSubmit()">✅ Подтвердить</button>
-    <button onclick="closeConfirmation()">✖️ Отмена</button>
+    <button onclick="closeConfirmation()">📝 Редактировать</button>
   </div>
 </div>
 
@@ -580,12 +580,22 @@ function submitForm(button) {
     const name = c.querySelector('.project-title').textContent;
     const hours = parseInt(c.dataset.hours || 0);
     const minutes = parseInt(c.dataset.minutes || 0);
+
+    // 👉 Пропускаем проект, если нет ни часов, ни минут
+    if (hours === 0 && minutes === 0) return;
+
     totalMinutes += hours * 60 + minutes;
 
     const line = document.createElement('div');
     line.textContent = `• ${name}: ${hours} ч ${minutes} мин`;
     list.appendChild(line);
   });
+
+  // Если совсем ничего не указано — не продолжаем
+  if (totalMinutes === 0) {
+    alert('⛔️ Сначала укажи часы хотя бы по одному проекту.');
+    return;
+  }
 
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
@@ -763,20 +773,6 @@ if (selectedDay > todayStr) {
   alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
   return;
 }
-  
-const selectedDateObj = new Date(selectedDay); // ← Добавь эту строку
-const isWeekend = selectedDateObj.getDay() === 0 || selectedDateObj.getDay() === 6;
-
-  const exceptions = [504330296];
-
-// Получаем telegram_id текущего пользователя (тебе надо убедиться, что telegram_id правильный тип, число)
-let telegram_id = Number(tg.initDataUnsafe.user.id);  // пример, если у тебя так получаются данные
-
-  
-  if (!isWeekend && totalHours < 8 && !exceptions.includes(telegram_id)) {
-    alert('⚠️ Ты заполнил(а) менее 8 часов. Мы не можем принять отчёт. Пожалуйста, дозаполни!');
-    return; // ❌ не отправляем
-  }
 
   if (totalHours > 8) {
     const proceed = confirm('⚠️ Ты указал(а) больше 8 часов. Это считается переработкой. Всё ли корректно?');
@@ -886,16 +882,16 @@ function closeConfirmation() {
 
       for (let i = 0; i <= 8; i++) {
         const btn = document.createElement('button');
-        btn.textContent = i;
+    btn.textContent = `${i} ч`; // 👈 добавляем "ч"
         btn.onclick = () => chooseMinutes(i);
         content.appendChild(btn);
       }
 
       function chooseMinutes(selectedHours) {
         content.innerHTML = '<h3>Сколько минут?</h3>';
-        [0, 15, 30, 45].forEach(min => {
+        [0, 5, 10, 15, 30, 45].forEach(min => {
           const btn = document.createElement('button');
-          btn.textContent = min;
+      btn.textContent = `${min} мин`; // 👈 добавляем "мин"
           btn.onclick = () => {
             modal.style.display = 'none';
 
