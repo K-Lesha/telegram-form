@@ -440,7 +440,7 @@ function renderFormForDay(day) {
       grouped.internal.push(project);
     }
     // Архив: project_status == 'archive' или is_active_plan === false
-    else if (status === 'archive' || project.is_active_plan === false) {
+    else if (status === 'archive' || project.is_active_plan === false || status === 'internal_archive') {
       grouped.archive.push(project);
     }
     // Активные: только если явно is_active_plan === true
