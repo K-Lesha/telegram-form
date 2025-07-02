@@ -433,6 +433,8 @@ function renderFormForDay(day) {
   activeProjects.forEach(project => {
     const status = project.project_status || 'active';
 
+      if (status === 'deleted') return;
+
     // Внутренние задачи — всегда отдельная категория
     if (status === 'internal') {
       grouped.internal.push(project);
