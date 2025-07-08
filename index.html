@@ -382,7 +382,14 @@
       const result = document.getElementById('result');
       result.innerHTML = '';
 
-      activeProjects = data?.active_projects || []; // ✅ напрямую из объекта, а не из массива
+      const today = new Date();
+activeProjects = (data?.active_projects || []).filter(project => {
+  const startDate = project.start_date ? new Date(project.start_date) : null;
+
+  if (!startDate) return true; // нет даты — показываем
+  const daysDiff = Math.ceil((startDate - today) / (1000 * 60 * 60 * 24));
+  return daysDiff <= 3; // показываем, если старт через 3 дня или меньше
+});
 
       result.innerHTML = '<h3>Выбери день:</h3>';
       if (data.unfilled_dates?.length) {
