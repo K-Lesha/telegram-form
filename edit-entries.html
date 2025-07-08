@@ -83,7 +83,7 @@
 <body>
   <div class="controls">
     <button id="btnEntries" onclick="showSection('entries')" disabled>🕘 История записей</button>
-    <button id="btnVacations" onclick="showSection('vacations')" disabled>🏖 История отпусков</button>
+    <button id="btnVacations" onclick="showSection('vacations')" disabled>История 🏖 отпусков и 🌡 больничных</button>
   </div>
   <h2 id="sectionTitle">Пожалуйста, выбери раздел</h2>
   <div id="content" class="loading">Загрузка...</div>
@@ -297,11 +297,13 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
   vacations.forEach((v, index) => {
     const start = v.start_date || '';
     const end = v.end_date || '';
+     const type = v.type === 'sick_leave' ? 'Больничный' : 'Отпуск';
+
 
     const div = document.createElement('div');
     div.className = 'entry';
     div.innerHTML = `
-      <div class="project">Отпуск</div>
+     <div class="project">${type}</div>
       <div class="time">${formatDate(start)} – ${formatDate(end)}</div>
     `;
 
