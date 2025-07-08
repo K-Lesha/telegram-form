@@ -297,6 +297,19 @@
   </div>
 </div>
 
+  <!-- Модалка об больничном -->
+<div id="sickLeaveDateModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Укажи даты больничного</h3>
+    <label>Начало больничного:</label>
+    <input type="date" id="sickLeaveStart" />
+    <label>Конец больничного:</label>
+    <input type="date" id="sickLeaveEnd" />
+    <button onclick="confirmSickLeaveDates()">✅ Подтвердить</button>
+    <button onclick="cancelSickLeaveDates()">✖️ Отмена</button>
+  </div>
+</div>
+
         <!-- Модалка выбора времени по проекту -->
     <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
@@ -633,7 +646,6 @@ async function skipDay() {
     return await skipDay();
   }
 
-  // 👉 Новая логика: проверка включения выбранной даты в отпуск
   const selected = new Date(selectedDay);
   const vacationStartDate = new Date(vacationDates.start_date);
   const vacationEndDate = new Date(vacationDates.end_date);
@@ -650,7 +662,43 @@ async function skipDay() {
     body: JSON.stringify({
       telegram_id,
       start_date: vacationDates.start_date,
-      end_date: vacationDates.end_date
+      end_date: vacationDates.end_date,
+      type: 'vacation'
+    })
+  });
+}
+
+  if (reason === 'sick_leave') {
+  let sickCancelled = false;
+
+  let sickDates;
+  try {
+    sickDates = await promptSickLeaveDates();
+  } catch (e) {
+    sickCancelled = true;
+  }
+
+  if (sickCancelled) return await skipDay();
+
+  // Проверка: выбранная дата входит в больничный
+  const selected = new Date(selectedDay);
+  const sickStart = new Date(sickDates.start_date);
+  const sickEnd = new Date(sickDates.end_date);
+
+  if (selected < sickStart || selected > sickEnd) {
+    alert(`❌ Дата ${formatDate(selectedDay)} не входит в диапазон больничного`);
+    return await skipDay();
+  }
+
+  // Отправка больничного
+  await fetch('https://betters-technology.site/webhook/add-vacation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegram_id,
+      start_date: sickDates.start_date,
+      end_date: sickDates.end_date,
+      type: 'sick_leave' // 👈 передаем тип
     })
   });
 }
@@ -693,6 +741,48 @@ const res = await fetch('https://betters-technology.site/webhook/submit-hours', 
     document.getElementById('vacationDateModal').style.display = 'flex';
   });
 }
+
+    function promptSickLeaveDates() {
+  return new Promise((resolve, reject) => {
+    window._sickLeaveDateResolver = resolve;
+    window._sickLeaveDateRejecter = reject;
+    document.getElementById('sickLeaveDateModal').style.display = 'flex';
+  });
+}
+
+window.confirmSickLeaveDates = function () {
+  const startInput = document.getElementById('sickLeaveStart');
+  const endInput = document.getElementById('sickLeaveEnd');
+  const start = startInput.value;
+  const end = endInput.value;
+
+  if (!start || !end || new Date(start) > new Date(end)) {
+    alert('Проверь корректность дат');
+    return;
+  }
+
+  document.getElementById('sickLeaveDateModal').style.display = 'none';
+  startInput.value = '';
+  endInput.value = '';
+
+  if (window._sickLeaveDateResolver) {
+    window._sickLeaveDateResolver({ start_date: start, end_date: end });
+    window._sickLeaveDateResolver = null;
+    window._sickLeaveDateRejecter = null;
+  }
+};
+
+window.cancelSickLeaveDates = function () {
+  document.getElementById('sickLeaveDateModal').style.display = 'none';
+  document.getElementById('sickLeaveStart').value = '';
+  document.getElementById('sickLeaveEnd').value = '';
+
+  if (window._sickLeaveDateRejecter) {
+    window._sickLeaveDateRejecter('cancelled');
+    window._sickLeaveDateResolver = null;
+    window._sickLeaveDateRejecter = null;
+  }
+};
 
     function showSkipReasonModal() {
   return new Promise((resolve, reject) => {
