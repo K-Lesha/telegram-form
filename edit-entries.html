@@ -198,7 +198,7 @@ showSection(currentSection);
     div.className = 'entry';
 
     const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
-    const hours = typeof e.hours === 'number' ? e.hours.toFixed(2) : '0.00';
+    const hours = typeof e.hours === 'number' ? formatHoursPretty(e.hours) : '0ч00м';
 
     div.innerHTML = `
       <div class="project">${name}</div>
@@ -208,13 +208,25 @@ showSection(currentSection);
     content.appendChild(div);
   });
 
-  // ✅ Редактировать — внутри цикла
-  const editBtn = document.createElement('button');
-  editBtn.textContent = '✏️ Редактировать';
-  editBtn.style.marginBottom = '10px';
-  editBtn.onclick = () => enableEditMode(group);
-  content.appendChild(editBtn);
+    // ✅ Показываем кнопку редактирования, только если дата ≤ 3 дней назад
+  const entryDate = new Date(group.date);
+  const today = new Date();
+  const diffInDays = (today - entryDate) / (1000 * 60 * 60 * 24);
+
+  if (diffInDays <= 3) {
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ Редактировать';
+    editBtn.style.marginBottom = '10px';
+    editBtn.onclick = () => enableEditMode(group);
+    content.appendChild(editBtn);
+  }
 });
+     function formatHoursPretty(value) {
+  const totalMinutes = Math.round(value * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}ч${minutes.toString().padStart(2, '0')}м`;
+}
       
     }
     function enableEditMode(group) {
