@@ -340,11 +340,22 @@
     <button onclick="closeCustomDateModal()">✖️ Отмена</button>
   </div>
 </div>
+
+  <!-- Модалка добавления отпуска/больничного -->
+<div id="addLeaveTypeModal" class="modal-overlay" style="display: none;">
+  <div class="modal-content">
+    <h3>Выбери тип отсутствия</h3>
+    <button onclick="handleLeaveTypeSelection('vacation')">🏖 Отпуск</button>
+    <button onclick="handleLeaveTypeSelection('sick_leave')">🤧 Больничный</button>
+    <button onclick="cancelLeaveTypeSelection()">✖️ Отмена</button>
+  </div>
+</div>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
 
 
+    
     
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -424,35 +435,42 @@ activeProjects = (data?.active_projects || []).filter(project => {
       document.getElementById('customDateModal').style.display = 'flex';
     }
 
-    function openAddLeaveFlow() {
-  const modal = document.getElementById('skipReasonModal');
+function openAddLeaveFlow() {
+  const modal = document.getElementById('addLeaveTypeModal');
   modal.style.display = 'flex';
+}
 
-  window.selectSkipReason = async function (reason) {
-    modal.style.display = 'none';
+function handleLeaveTypeSelection(type) {
+  document.getElementById('addLeaveTypeModal').style.display = 'none';
 
-    if (reason === 'vacation') {
-      try {
-        const dates = await promptVacationDates();
-        await sendLeaveWithoutDay(dates.start_date, dates.end_date, 'vacation');
+  if (type === 'vacation') {
+    promptVacationDates()
+      .then(({ start_date, end_date }) =>
+        sendLeaveWithoutDay(start_date, end_date, 'vacation')
+      )
+      .then(() => {
         alert('✅ Отпуск успешно записан!');
-        loadUserData(); // перерисуем интерфейс
-      } catch (err) {
-        console.log('Отмена или ошибка отпуска', err);
-      }
-    }
+        loadUserData();
+      })
+      .catch(() => {});
+  }
 
-    if (reason === 'sick_leave') {
-      try {
-        const dates = await promptSickLeaveDates();
-        await sendLeaveWithoutDay(dates.start_date, dates.end_date, 'sick_leave');
+  if (type === 'sick_leave') {
+    promptSickLeaveDates()
+      .then(({ start_date, end_date }) =>
+        sendLeaveWithoutDay(start_date, end_date, 'sick_leave')
+      )
+      .then(() => {
         alert('✅ Больничный успешно записан!');
-        loadUserData(); // обновим
-      } catch (err) {
-        console.log('Отмена или ошибка больничного', err);
-      }
-    }
-  };
+        loadUserData();
+      })
+      .catch(() => {});
+  }
+}
+
+function cancelLeaveTypeSelection() {
+  document.getElementById('addLeaveTypeModal').style.display = 'none';
+}
 
       async function sendLeaveWithoutDay(start_date, end_date, type) {
   await fetch('https://betters-technology.site/webhook/add-vacation', {
@@ -467,11 +485,6 @@ activeProjects = (data?.active_projects || []).filter(project => {
   });
 }
 
-  window.cancelSkipReason = function () {
-    modal.style.display = 'none';
-    delete window.selectSkipReason;
-    delete window.cancelSkipReason;
-  };
 }
 
 function closeCustomDateModal() {
@@ -1184,6 +1197,11 @@ function closeProjectModal() {
   }
 });
 
+    document.getElementById('addLeaveTypeModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    cancelLeaveTypeSelection();
+  }
+});
     
     
   </script>
