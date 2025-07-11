@@ -45,7 +45,7 @@
       color: #888;
     }
 
-    button {
+    .button {
   display: inline-block;
   padding: 10px 16px;
   margin: 6px 4px;
@@ -58,20 +58,22 @@
   transition: all 0.2s ease;
 }
 
-button:hover {
+.button:hover {
   background-color: #444444;
   border-color: #444444;
 }
 
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
+.button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
 
     .btn-alt {
   background-color: transparent;
   color: #000000;
   border: 1px solid #000000;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .btn-alt:hover {
@@ -164,23 +166,28 @@ button:hover {
     }
 
     function showSection(section) {
-      currentSection = section;
-      btnEntries.classList.toggle('active', section === 'entries');
-      btnVacations.classList.toggle('active', section === 'vacations');
+  currentSection = section;
 
-      if (!fullData) {
-        content.textContent = '⏳ Данные ещё загружаются...';
-        return;
-      }
+  const isEntries = section === 'entries';
+  const isVacations = section === 'vacations';
 
-      if (section === 'entries') {
-        title.textContent = '🕘 История записей';
-        renderEntries(fullData.time_entries_by_date);
-      } else if (section === 'vacations') {
-        title.textContent = '🏖 История отпусков';
-        renderVacations(fullData.vacations);
-      }
-    }
+  // Удаляем все варианты классов перед назначением
+  btnEntries.className = isEntries ? 'button active' : 'btn-alt';
+  btnVacations.className = isVacations ? 'button active' : 'btn-alt';
+
+  if (!fullData) {
+    content.textContent = '⏳ Данные ещё загружаются...';
+    return;
+  }
+
+  if (section === 'entries') {
+    title.textContent = '🕘 История записей';
+    renderEntries(fullData.time_entries_by_date);
+  } else if (section === 'vacations') {
+    title.textContent = '🏖 История отпусков';
+    renderVacations(fullData.vacations);
+  }
+}
 
     function renderEntries(entriesByDate) {
       if (!Array.isArray(entriesByDate) || entriesByDate.length === 0) {
