@@ -192,6 +192,10 @@ button:hover {
       entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
 
       entriesByDate.forEach(group => {
+
+          if (group.filled === null) return;
+
+        
         const dateEl = document.createElement('div');
         dateEl.className = 'entry-date';
         dateEl.textContent = formatDate(group.date);
@@ -247,31 +251,34 @@ button:hover {
     }
 
     function confirmMakeWorkingDay(date, reason) {
-      if (!tg?.initDataUnsafe?.user?.id) {
-        alert('❌ Telegram ID не найден');
-        return;
-      }
-      const confirmed = confirm(`Вы действительно хотите изменить ${formatDate(date)} на рабочий день?\nПричина: ${reason}`);
-      if (!confirmed) return;
+  if (!tg?.initDataUnsafe?.user?.id) {
+    alert('❌ Telegram ID не найден');
+    return;
+  }
 
-      fetch('https://betters-technology.site/webhook/set-working-day', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          telegram_id: tg.initDataUnsafe.user.id,
-          date: date
-        })
-      })
-      .then(res => {
-        if (!res.ok) throw new Error('Ошибка запроса');
-        alert('✅ День отмечен как рабочий!');
-        fetchData();
-      })
-      .catch(err => {
-        alert('❌ Не удалось изменить день.');
-        console.error(err);
-      });
-    }
+  const message = `Вы действительно хотите изменить ${formatDate(date)} на рабочий день?\n\nПричина: ${reason || 'не указана'}\n\n⚠️ Обратите внимание: если этот день всё ещё входит в диапазон отпуска или больничного, то статус автоматически останется соответствующим.\nЧтобы гарантировать изменение на рабочий день, сначала нужно изменить диапазон отпуска или больничного.`;
+
+  const confirmed = confirm(message);
+  if (!confirmed) return;
+
+  fetch('https://betters-technology.site/webhook/set-working-day', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegram_id: tg.initDataUnsafe.user.id,
+      date: date
+    })
+  })
+  .then(res => {
+    if (!res.ok) throw new Error('Ошибка запроса');
+    alert('✅ День отмечен как рабочий!');
+    fetchData();
+  })
+  .catch(err => {
+    alert('❌ Не удалось изменить день.');
+    console.error(err);
+  });
+}
 
     fetchData();
   </script>
