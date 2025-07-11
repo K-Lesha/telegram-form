@@ -287,6 +287,105 @@
   });
 }
 
+    
+function renderVacations(vacations) {
+  if (!Array.isArray(vacations) || vacations.length === 0) {
+    content.innerHTML = '<p>Нет записей об отпусках.</p>';
+    return;
+  }
+
+  content.innerHTML = '';
+  vacations.forEach((v, index) => {
+    const start = v.start_date || '';
+    const end = v.end_date || '';
+     const type = v.type === 'sick_leave' ? 'Больничный' : 'Отпуск';
+
+
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `
+     <div class="project">${type}</div>
+      <div class="time">${formatDate(start)} – ${formatDate(end)}</div>
+    `;
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = '✏️ Редактировать';
+editBtn.onclick = () => enableVacationEdit(v.id, start, end);
+    div.appendChild(editBtn);
+
+    content.appendChild(div);
+  });
+}
+
+
+function enableVacationEdit(vacationId, startDate, endDate) {
+  content.innerHTML = '';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'entry-date';
+  dateEl.textContent = `Редактирование отпуска`;
+  content.appendChild(dateEl);
+
+  const startInput = document.createElement('input');
+  startInput.type = 'date';
+  startInput.value = startDate;
+  startInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
+
+  const endInput = document.createElement('input');
+  endInput.type = 'date';
+  endInput.value = endDate;
+  endInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
+
+  content.appendChild(document.createTextNode('Дата начала:'));
+  content.appendChild(document.createElement('br'));
+  content.appendChild(startInput);
+  content.appendChild(document.createElement('br'));
+  content.appendChild(document.createTextNode('Дата окончания:'));
+  content.appendChild(document.createElement('br'));
+  content.appendChild(endInput);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '💾 Сохранить';
+  saveBtn.onclick = () => saveVacationUpdate(vacationId, startInput.value, endInput.value, saveBtn);
+  content.appendChild(document.createElement('br'));
+  content.appendChild(saveBtn);
+}
+
+    
+   async function saveVacationUpdate(vacation_id, start_date, end_date, btn) {
+  btn.disabled = true;
+
+  if (!userId) {
+    alert('❌ Не удалось определить ID пользователя');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://betters-technology.site/webhook/get-vacation-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: userId,
+        vacation_id, // <-- добавляем сюда ID отпуска
+        start_date,
+        end_date
+      })
+    });
+
+    if (!res.ok) {
+      const error = await res.text();
+      alert('Ошибка при сохранении: ' + error);
+      return;
+    }
+
+    alert('✅ Отпуск обновлён!');
+    fetchData();
+  } catch (err) {
+    alert('❌ Ошибка соединения.');
+    console.error(err);
+  }
+}
+
     fetchData();
   </script>
 </body>
