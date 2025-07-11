@@ -411,6 +411,11 @@ activeProjects = (data?.active_projects || []).filter(project => {
       otherBtn.textContent = '📅 Другой день';
       otherBtn.onclick = promptCustomDate;
       result.appendChild(otherBtn);
+
+      const addLeaveBtn = document.createElement('button');
+      addLeaveBtn.textContent = '🏖 Внести отпуск / больничный';
+      addLeaveBtn.onclick = () => openAddLeaveFlow();
+      result.appendChild(addLeaveBtn);
     }
 
     function promptCustomDate() {
@@ -418,6 +423,56 @@ activeProjects = (data?.active_projects || []).filter(project => {
       input.value = new Date().toISOString().split('T')[0];
       document.getElementById('customDateModal').style.display = 'flex';
     }
+
+    function openAddLeaveFlow() {
+  const modal = document.getElementById('skipReasonModal');
+  modal.style.display = 'flex';
+
+  window.selectSkipReason = async function (reason) {
+    modal.style.display = 'none';
+
+    if (reason === 'vacation') {
+      try {
+        const dates = await promptVacationDates();
+        await sendLeaveWithoutDay(dates.start_date, dates.end_date, 'vacation');
+        alert('✅ Отпуск успешно записан!');
+        loadUserData(); // перерисуем интерфейс
+      } catch (err) {
+        console.log('Отмена или ошибка отпуска', err);
+      }
+    }
+
+    if (reason === 'sick_leave') {
+      try {
+        const dates = await promptSickLeaveDates();
+        await sendLeaveWithoutDay(dates.start_date, dates.end_date, 'sick_leave');
+        alert('✅ Больничный успешно записан!');
+        loadUserData(); // обновим
+      } catch (err) {
+        console.log('Отмена или ошибка больничного', err);
+      }
+    }
+  };
+
+      async function sendLeaveWithoutDay(start_date, end_date, type) {
+  await fetch('https://betters-technology.site/webhook/add-vacation', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegram_id,
+      start_date,
+      end_date,
+      type
+    })
+  });
+}
+
+  window.cancelSkipReason = function () {
+    modal.style.display = 'none';
+    delete window.selectSkipReason;
+    delete window.cancelSkipReason;
+  };
+}
 
 function closeCustomDateModal() {
   document.getElementById('customDateModal').style.display = 'none';
