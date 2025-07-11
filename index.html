@@ -214,6 +214,20 @@ button:hover {
   background-color: #e6e6e6;
 }
 
+    .selected-day {
+  background-color: #000;
+  color: #fff;
+  font-weight: bold;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.collapsed-day {
+  opacity: 0.5;
+  transform: scale(0.95);
+  transition: all 0.2s ease;
+}
+
     #confirmationModal {
   position: fixed;
   top: 0; left: 0;
@@ -522,6 +536,19 @@ async function confirmCustomDate() {
 }
 
 function renderFormForDay(day) {
+
+  // Обновляем стили всех кнопок-дней
+document.querySelectorAll('#result button').forEach(btn => {
+  if (btn.textContent === formatDate(day)) {
+    btn.classList.add('selected-day');
+    btn.classList.remove('collapsed-day');
+  } else if (!btn.classList.contains('btn-alt')) {
+    // не трогаем "Другой день" и отпуск
+    btn.classList.add('collapsed-day');
+    btn.classList.remove('selected-day');
+  }
+});
+  
   selectedDay = day;
   const form = document.getElementById('formBlock');
   form.innerHTML = `<h3>Заполнить часы на 📅 ${formatDate(day)}</h3>`;
