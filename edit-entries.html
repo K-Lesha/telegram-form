@@ -99,53 +99,47 @@
     const title = document.getElementById('sectionTitle');
     const btnEntries = document.getElementById('btnEntries');
     const btnVacations = document.getElementById('btnVacations');
-    let userId = null; // Глобально
-
-
+    let userId = null;
     let fullData = null;
     let currentSection = null;
 
-
-
     async function fetchData() {
-  btnEntries.disabled = true;
-  btnVacations.disabled = true;
+      btnEntries.disabled = true;
+      btnVacations.disabled = true;
 
-let telegram_id = tg?.initDataUnsafe?.user?.id;
+      let telegram_id = tg?.initDataUnsafe?.user?.id;
 
-if (!telegram_id) {
-  content.textContent = '❌ Не удалось получить Telegram ID.';
-  return;
-}      
-  try {
-    const res = await fetch('https://betters-technology.site/webhook/fetch-timentries', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ telegram_id })
-    });
+      if (!telegram_id) {
+        content.textContent = '❌ Не удалось получить Telegram ID.';
+        return;
+      }
+      try {
+        const res = await fetch('https://betters-technology.site/webhook/fetch-timentries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegram_id })
+        });
 
-    if (!res.ok) {
-      content.textContent = '⚠️ Сервер вернул ошибку.';
-      return;
+        if (!res.ok) {
+          content.textContent = '⚠️ Сервер вернул ошибку.';
+          return;
+        }
+
+        const data = await res.json();
+        fullData = data;
+        userId = data.user_id;
+
+        btnEntries.disabled = false;
+        btnVacations.disabled = false;
+
+        currentSection = 'entries';
+        showSection(currentSection);
+
+      } catch (err) {
+        content.textContent = '⚠️ Ошибка загрузки данных.';
+        content.innerHTML += `<pre>${err}</pre>`;
+      }
     }
-
-const data = await res.json();
-
-fullData = data;
-      userId = data.user_id; // <-- вот здесь сохраняем
-
-    btnEntries.disabled = false;
-    btnVacations.disabled = false;
-
-    currentSection = 'entries'; // или 'vacations', если нужно другое
-showSection(currentSection);
-
-    
-  } catch (err) {
-    content.textContent = '⚠️ Ошибка загрузки данных.';
-    content.innerHTML += `<pre>${err}</pre>`;
-  }
-}
 
     function formatDate(dateStr) {
       const d = new Date(dateStr);
@@ -185,216 +179,61 @@ showSection(currentSection);
       content.innerHTML = '';
       entriesByDate.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-     entriesByDate.forEach(group => {
-  if (!Array.isArray(group.entries) || group.entries.length === 0) return;
+      entriesByDate.forEach(group => {
+        const dateEl = document.createElement('div');
+        dateEl.className = 'entry-date';
+        dateEl.textContent = formatDate(group.date);
+        content.appendChild(dateEl);
 
-  const dateEl = document.createElement('div');
-  dateEl.className = 'entry-date';
-  dateEl.textContent = formatDate(group.date);
-  content.appendChild(dateEl);
+        if (group.filled) {
+          if (Array.isArray(group.entries)) {
+            group.entries.forEach(e => {
+              const div = document.createElement('div');
+              div.className = 'entry';
 
-  group.entries.forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'entry';
+              const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
+              const hours = typeof e.hours === 'number' ? formatHoursPretty(e.hours) : '0ч00м';
 
-    const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
-    const hours = typeof e.hours === 'number' ? formatHoursPretty(e.hours) : '0ч00м';
+              div.innerHTML = `
+                <div class="project">${name}</div>
+                <div class="time">${hours}</div>
+              `;
 
-    div.innerHTML = `
-      <div class="project">${name}</div>
-      <div class="time">${hours}</div>
-    `;
+              content.appendChild(div);
+            });
+          }
+        } else {
+          const div = document.createElement('div');
+          div.className = 'entry';
+          div.innerHTML = `
+            <div class="project">Не заполнено</div>
+            <div class="time">Причина: ${group.not_filled_reason || 'не указана'}</div>
+            <button onclick="alert('Причина: ${group.not_filled_reason || 'не указана'}')">🔍 Подробнее</button>
+          `;
+          content.appendChild(div);
+        }
 
-    content.appendChild(div);
-  });
+        const entryDate = new Date(group.date);
+        const today = new Date();
+        const diffInDays = (today - entryDate) / (1000 * 60 * 60 * 24);
 
-    // ✅ Показываем кнопку редактирования, только если дата ≤ 3 дней назад
-  const entryDate = new Date(group.date);
-  const today = new Date();
-  const diffInDays = (today - entryDate) / (1000 * 60 * 60 * 24);
+        if (diffInDays <= 3 && group.filled) {
+          const editBtn = document.createElement('button');
+          editBtn.textContent = '✏️ Редактировать';
+          editBtn.style.marginBottom = '10px';
+          editBtn.onclick = () => enableEditMode(group);
+          content.appendChild(editBtn);
+        }
+      });
 
-  if (diffInDays <= 3) {
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️ Редактировать';
-    editBtn.style.marginBottom = '10px';
-    editBtn.onclick = () => enableEditMode(group);
-    content.appendChild(editBtn);
-  }
-});
-     function formatHoursPretty(value) {
-  const totalMinutes = Math.round(value * 60);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return `${hours}ч${minutes.toString().padStart(2, '0')}м`;
-}
-      
-    }
-    function enableEditMode(group) {
-  content.innerHTML = '';
-
-  const dateEl = document.createElement('div');
-  dateEl.className = 'entry-date';
-  dateEl.textContent = formatDate(group.date);
-  content.appendChild(dateEl);
-
-  const updatedEntries = [];
-
-  group.entries.forEach(e => {
-    const div = document.createElement('div');
-    div.className = 'entry';
-
-    const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
-    const inputId = `input_${group.date}_${e.project_id}`;
-
-    div.innerHTML = `
-      <div class="project">${name}</div>
-      <input type="number" id="${inputId}" value="${e.hours}" step="0.25" style="margin-top:4px;padding:8px;width:100px;border-radius:6px;border:1px solid #ccc;" />
-    `;
-
-    content.appendChild(div);
-
-    updatedEntries.push({ project_id: e.project_id, inputId });
-  });
-
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = '💾 Сохранить';
-saveBtn.onclick = () => saveUpdatedEntries(group.date, updatedEntries, saveBtn);
-      content.appendChild(saveBtn);
-}
-
-async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
-  saveBtn.disabled = true;
-
-  const entries = updatedEntries.map(e => {
-    const val = parseFloat(document.getElementById(e.inputId).value);
-    return {
-      project_id: e.project_id,
-      hours: isNaN(val) ? 0 : val
-    };
-  });
-
-  if (!userId) {
-  alert('❌ Не удалось определить ID пользователя');
-  return;
-}
-
-  try {
-    const res = await fetch('https://betters-technology.site/webhook/get-time-entry-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date, entries, user_id: userId })
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      alert('Ошибка сохранения данных: ' + errorText);
-      return;
+      function formatHoursPretty(value) {
+        const totalMinutes = Math.round(value * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return `${hours}ч${minutes.toString().padStart(2, '0')}м`;
+      }
     }
 
-    alert('✅ Сохранено!');
-    fetchData(); // перезагрузить отображение
-  } catch (err) {
-    alert('Ошибка соединения с сервером.');
-    console.error(err);
-  }
-}
-
-    function renderVacations(vacations) {
-  if (!Array.isArray(vacations) || vacations.length === 0) {
-    content.innerHTML = '<p>Нет записей об отпусках.</p>';
-    return;
-  }
-
-  content.innerHTML = '';
-  vacations.forEach((v, index) => {
-    const start = v.start_date || '';
-    const end = v.end_date || '';
-     const type = v.type === 'sick_leave' ? 'Больничный' : 'Отпуск';
-
-
-    const div = document.createElement('div');
-    div.className = 'entry';
-    div.innerHTML = `
-     <div class="project">${type}</div>
-      <div class="time">${formatDate(start)} – ${formatDate(end)}</div>
-    `;
-
-    const editBtn = document.createElement('button');
-    editBtn.textContent = '✏️ Редактировать';
-editBtn.onclick = () => enableVacationEdit(v.id, start, end);
-    div.appendChild(editBtn);
-
-    content.appendChild(div);
-  });
-}
-
-    function enableVacationEdit(vacationId, startDate, endDate) {
-  content.innerHTML = '';
-
-  const dateEl = document.createElement('div');
-  dateEl.className = 'entry-date';
-  dateEl.textContent = `Редактирование отпуска`;
-  content.appendChild(dateEl);
-
-  const startInput = document.createElement('input');
-  startInput.type = 'date';
-  startInput.value = startDate;
-  startInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
-
-  const endInput = document.createElement('input');
-  endInput.type = 'date';
-  endInput.value = endDate;
-  endInput.style = 'margin: 8px 0; padding: 8px; width: 200px;';
-
-  content.appendChild(document.createTextNode('Дата начала:'));
-  content.appendChild(document.createElement('br'));
-  content.appendChild(startInput);
-  content.appendChild(document.createElement('br'));
-  content.appendChild(document.createTextNode('Дата окончания:'));
-  content.appendChild(document.createElement('br'));
-  content.appendChild(endInput);
-
-  const saveBtn = document.createElement('button');
-  saveBtn.textContent = '💾 Сохранить';
-  saveBtn.onclick = () => saveVacationUpdate(vacationId, startInput.value, endInput.value, saveBtn);
-  content.appendChild(document.createElement('br'));
-  content.appendChild(saveBtn);
-}
-
-    
-   async function saveVacationUpdate(vacation_id, start_date, end_date, btn) {
-  btn.disabled = true;
-
-  if (!userId) {
-    alert('❌ Не удалось определить ID пользователя');
-    return;
-  }
-
-  try {
-    const res = await fetch('https://betters-technology.site/webhook/get-vacation-update', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: userId,
-        vacation_id, // <-- добавляем сюда ID отпуска
-        start_date,
-        end_date
-      })
-    });
-
-    if (!res.ok) {
-      const error = await res.text();
-      alert('Ошибка при сохранении: ' + error);
-      return;
-    }
-
-    alert('✅ Отпуск обновлён!');
-    fetchData();
-  } catch (err) {
-    alert('❌ Ошибка соединения.');
-    console.error(err);
-  }
-}
     fetchData();
   </script>
 </body>
