@@ -46,27 +46,39 @@
     }
 
     button {
-      display: inline-block;
-      padding: 10px 16px;
-      margin: 6px 6px 12px 0;
-      background-color: #007aff;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.2s, opacity 0.2s;
-    }
+  display: inline-block;
+  padding: 10px 16px;
+  margin: 6px 4px;
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: #444444;
+  border-color: #444444;
+}
 
     button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
       opacity: 0.6;
+      cursor: default;
     }
 
-    button:hover {
-      background-color: #005fcc;
-    }
+    .btn-alt {
+  background-color: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+.btn-alt:hover {
+  background-color: #444444;
+  color: white;
+  border-color: #444444;
+}
 
     .controls {
       display: flex;
@@ -208,7 +220,7 @@
           div.innerHTML = `
             <div class="project">Не заполнено</div>
             <div class="time">Причина: ${group.not_filled_reason || 'не указана'}</div>
-            <button onclick="alert('Причина: ${group.not_filled_reason || 'не указана'}')">🔍 Подробнее</button>
+            <button onclick="confirmMakeWorkingDay('${group.date}', '${group.not_filled_reason?.replace(/'/g, '\'') || ''}')">⚙️ Изменить на рабочий день</button>
           `;
           content.appendChild(div);
         }
@@ -232,6 +244,33 @@
         const minutes = totalMinutes % 60;
         return `${hours}ч${minutes.toString().padStart(2, '0')}м`;
       }
+    }
+
+    function confirmMakeWorkingDay(date, reason) {
+      if (!tg?.initDataUnsafe?.user?.id) {
+        alert('❌ Telegram ID не найден');
+        return;
+      }
+      const confirmed = confirm(`Вы действительно хотите изменить ${formatDate(date)} на рабочий день?\nПричина: ${reason}`);
+      if (!confirmed) return;
+
+      fetch('https://betters-technology.site/webhook/set-working-day', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: tg.initDataUnsafe.user.id,
+          date: date
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Ошибка запроса');
+        alert('✅ День отмечен как рабочий!');
+        fetchData();
+      })
+      .catch(err => {
+        alert('❌ Не удалось изменить день.');
+        console.error(err);
+      });
     }
 
     fetchData();
