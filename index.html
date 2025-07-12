@@ -1138,7 +1138,7 @@ function checkOvertimeAndNotify(hours) {
         total_hours: parseFloat(total.toFixed(2))
       };
 
-      fetch('https://betters-technology.site/webhook/notify', {
+      fetch('https://betters-technology.site/webhook/notify-manager-about-overload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
