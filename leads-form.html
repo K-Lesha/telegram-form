@@ -173,7 +173,6 @@ button:hover {
 let currentUserId = null;
 
   async function loadProjects() {
-
     
     try {
       const tg = window.Telegram.WebApp;
@@ -194,6 +193,8 @@ let currentUserId = null;
       }
       console.log('Результат запроса:', data);
 
+      data = data.filter(p => p.project_status !== 'deleted');
+      
       const container = document.getElementById('projects');
       container.innerHTML = '';
 
