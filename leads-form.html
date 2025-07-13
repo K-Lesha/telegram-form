@@ -69,15 +69,40 @@
   background-color: #f0f0f0;
   opacity: 0.8;
 }
-    button {
-      padding: 10px 16px;
-      background-color: #007aff;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 12px;
+  button {
+  display: inline-block;
+  padding: 10px 16px;
+  margin: 6px 4px;
+  background-color: #000000;
+  color: #ffffff;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  background-color: #444444;
+  border-color: #444444;
+}
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
     }
+
+    .btn-alt {
+  background-color: transparent;
+  color: #000000;
+  border: 1px solid #000000;
+}
+
+.btn-alt:hover {
+  background-color: #444444;
+  color: white;
+  border-color: #444444;
+}
 
     #memberModal {
   display: none;
