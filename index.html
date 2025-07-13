@@ -288,10 +288,60 @@ button:hover {
         margin: 6px 0;
       }
     }
+
+    #logoLoader {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  font-size: 48px;
+  font-weight: bold;
+  font-family: sans-serif;
+  overflow: hidden;
+}
+
+.logo-letter {
+  opacity: 0;
+  transform: translateX(-50px);
+  display: inline-block;
+  animation: appear 0.6s forwards;
+}
+
+.logo-letter:nth-child(1) { animation-delay: 0.1s; }
+.logo-letter:nth-child(2) { animation-delay: 0.3s; }
+.logo-letter:nth-child(3) { animation-delay: 0.5s; }
+.logo-letter:nth-child(4) { animation-delay: 0.7s; }
+.logo-letter:nth-child(5) { animation-delay: 0.9s; }
+
+@keyframes appear {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes exitLeft {
+  to {
+    transform: translateX(-200%);
+    opacity: 0;
+  }
+}
   </style>
 </head>
 <body>
-
+<div id="logoLoader">
+  <span class="logo-letter">(</span>
+  <span class="logo-letter">(</span>
+  <span class="logo-letter">S</span>
+  <span class="logo-letter">)</span>
+  <span class="logo-letter">)</span>
+</div>
+  
   <!-- Модалка выбора причины пропуска -->
 <div id="skipReasonModal" class="modal-overlay" style="display: none;">
   <div class="modal-content">
@@ -1270,8 +1320,12 @@ function closeProjectModal() {
 }
 
     if (telegram_id !== '—') {
-      loadUserData();
-    }
+  loadUserData().then(() => {
+    const loader = document.getElementById('logoLoader');
+    loader.style.animation = 'exitLeft 0.8s forwards';
+    setTimeout(() => loader.style.display = 'none', 800);
+  });
+}
 
         document.querySelectorAll('.modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', e => {
