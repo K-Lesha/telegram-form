@@ -714,6 +714,11 @@ document.querySelectorAll('#result button').forEach(btn => {
   skipBtn.onclick = () => skipDay();
   skipBtn.className = 'skip-btn';
   form.appendChild(skipBtn);
+
+  // Прокрутка вниз к форме
+setTimeout(() => {
+  document.getElementById('formBlock')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}, 100);
 }
 
     function buildProjectRow(project) {
