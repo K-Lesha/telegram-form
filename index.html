@@ -721,10 +721,8 @@ document.querySelectorAll('#result button').forEach(btn => {
       });
 
       form.appendChild(container);
-    }
-  });
 
-  // Строка "Запросить проект в форму"
+       // Строка "Запросить проект в форму"
 const requestRow = document.createElement('div');
 requestRow.className = 'project-row';
 requestRow.style.borderTop = '1px dashed #ddd';
@@ -751,6 +749,8 @@ spacer2.style.width = '80px';
 requestRow.appendChild(spacer2);
 
 form.appendChild(requestRow);
+    }
+  });
 
   // Кнопка отправки
   const submitBtn = document.createElement('button');
