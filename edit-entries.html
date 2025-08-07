@@ -299,6 +299,76 @@
   });
 }
 
+      function enableEditMode(group) {
+  content.innerHTML = '';
+
+  const dateEl = document.createElement('div');
+  dateEl.className = 'entry-date';
+  dateEl.textContent = formatDate(group.date);
+  content.appendChild(dateEl);
+
+  const updatedEntries = [];
+
+  group.entries.forEach(e => {
+    const div = document.createElement('div');
+    div.className = 'entry';
+
+    const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
+    const inputId = `input_${group.date}_${e.project_id}`;
+
+    div.innerHTML = `
+      <div class="project">${name}</div>
+      <input type="number" id="${inputId}" value="${e.hours}" step="0.25" style="margin-top:4px;padding:8px;width:100px;border-radius:6px;border:1px solid #ccc;" />
+    `;
+
+    content.appendChild(div);
+
+    updatedEntries.push({ project_id: e.project_id, inputId });
+  });
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = '💾 Сохранить';
+saveBtn.onclick = () => saveUpdatedEntries(group.date, updatedEntries, saveBtn);
+      content.appendChild(saveBtn);
+}
+
+async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
+  saveBtn.disabled = true;
+
+  const entries = updatedEntries.map(e => {
+    const val = parseFloat(document.getElementById(e.inputId).value);
+    return {
+      project_id: e.project_id,
+      hours: isNaN(val) ? 0 : val
+    };
+  });
+
+  if (!userId) {
+  alert('❌ Не удалось определить ID пользователя');
+  return;
+}
+
+  try {
+    const res = await fetch('https://betters-technology.site/webhook/get-time-entry-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, entries, user_id: userId })
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      alert('Ошибка сохранения данных: ' + errorText);
+      return;
+    }
+
+    alert('✅ Сохранено!');
+    fetchData(); // перезагрузить отображение
+  } catch (err) {
+    alert('Ошибка соединения с сервером.');
+    console.error(err);
+  }
+}
+
     
 function renderVacations(vacations) {
   if (!Array.isArray(vacations) || vacations.length === 0) {
