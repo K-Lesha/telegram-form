@@ -401,6 +401,30 @@ button:hover {
   </div>
 </div>
 
+  <!-- Модалка запроса проекта в форму -->
+<div id="requestProjectModal" class="modal-overlay" style="display:none;">
+  <div class="modal-content" style="max-width:420px;">
+    <h3>Запросить проект в форму</h3>
+
+    <label for="managerSelect">Выбери менеджера:</label>
+    <select id="managerSelect" style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;">
+      <option value="">Загрузка...</option>
+    </select>
+
+    <div id="requestCommentBlock" style="margin-top:12px; display:none;">
+      <label for="requestComment">Комментарий</label>
+      <textarea id="requestComment" rows="4"
+        style="width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;resize:vertical;"
+        placeholder="Коротко опиши, какой проект нужен и зачем"></textarea>
+    </div>
+
+    <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
+      <button id="sendProjectRequestBtn" disabled>Отправить</button>
+      <button class="btn-alt" onclick="closeRequestProjectModal()">✖️ Отмена</button>
+    </div>
+  </div>
+</div>
+
         <!-- Модалка выбора времени по проекту -->
     <div id="timePickerModal" class="modal-overlay" style="display: none;">
     <div class="modal-inner" id="timePickerContent"></div>
@@ -454,6 +478,7 @@ button:hover {
     let telegram_id = '—';
     let activeProjects = [];
     let selectedDay = null;
+    let managersCache = []; // [{ id: 295619064, name: "..." }, ...]
 
     try {
       telegram_id = tg?.initDataUnsafe?.user?.id || '—';
@@ -698,6 +723,34 @@ document.querySelectorAll('#result button').forEach(btn => {
       form.appendChild(container);
     }
   });
+
+  // Строка "Запросить проект в форму"
+const requestRow = document.createElement('div');
+requestRow.className = 'project-row';
+requestRow.style.borderTop = '1px dashed #ddd';
+requestRow.style.paddingTop = '12px';
+requestRow.style.marginTop = '12px';
+
+const reqTitle = document.createElement('div');
+reqTitle.className = 'project-title';
+const reqLink = document.createElement('a');
+reqLink.textContent = '📨 Запросить проект в форму';
+reqLink.href = 'javascript:void(0)';
+reqLink.onclick = openRequestProjectModal;
+reqTitle.appendChild(reqLink);
+requestRow.appendChild(reqTitle);
+
+// Пустые ячейки для выравнивания
+const spacer1 = document.createElement('div');
+spacer1.className = 'time-display';
+spacer1.textContent = '';
+requestRow.appendChild(spacer1);
+
+const spacer2 = document.createElement('div');
+spacer2.style.width = '80px';
+requestRow.appendChild(spacer2);
+
+form.appendChild(requestRow);
 
   // Кнопка отправки
   const submitBtn = document.createElement('button');
@@ -1307,6 +1360,103 @@ function showProjectInfo(project) {
   });
 
   document.getElementById('projectInfoModal').style.display = 'flex';
+}
+
+    async function openRequestProjectModal() {
+  const modal = document.getElementById('requestProjectModal');
+  const select = document.getElementById('managerSelect');
+  const commentBlock = document.getElementById('requestCommentBlock');
+  const commentEl = document.getElementById('requestComment');
+  const sendBtn = document.getElementById('sendProjectRequestBtn');
+
+  // Сброс UI
+  commentEl.value = '';
+  sendBtn.disabled = true;
+  commentBlock.style.display = 'none';
+  select.innerHTML = `<option value="">Загрузка...</option>`;
+
+  // Фетчим менеджеров (кешируем на сессию)
+  try {
+    if (managersCache.length === 0) {
+      const res = await fetch('https://betters-technology.site/webhook/managers');
+      const raw = await res.json();
+      const arr = Array.isArray(raw) ? raw : [raw];
+
+      managersCache = arr
+        .filter(m => m && (m.telegram_id || m.id))
+        .map(m => ({
+          id: m.telegram_id ?? m.id,                // телеграм id менеджера
+          name: m.name || m.telegram_name || '—'    // ФИО/ник
+        }));
+    }
+
+    // Заполняем селект
+    if (managersCache.length === 0) {
+      select.innerHTML = `<option value="">Нет доступных менеджеров</option>`;
+    } else {
+      select.innerHTML = `<option value="">Выбери менеджера…</option>` +
+        managersCache.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+    }
+  } catch (e) {
+    select.innerHTML = `<option value="">Ошибка загрузки</option>`;
+  }
+
+  // Показ модалки
+  modal.style.display = 'flex';
+
+  // Логика появления комментария и активации кнопки
+  select.onchange = () => {
+    const hasManager = !!select.value;
+    commentBlock.style.display = hasManager ? 'block' : 'none';
+    sendBtn.disabled = !(hasManager && commentEl.value.trim().length > 0);
+  };
+
+  commentEl.oninput = () => {
+    sendBtn.disabled = !(select.value && commentEl.value.trim().length > 0);
+  };
+
+  sendBtn.onclick = () => submitProjectRequest(select.value, commentEl.value.trim());
+}
+
+function closeRequestProjectModal() {
+  const modal = document.getElementById('requestProjectModal');
+  document.getElementById('managerSelect').value = '';
+  document.getElementById('requestComment').value = '';
+  document.getElementById('requestCommentBlock').style.display = 'none';
+  document.getElementById('sendProjectRequestBtn').disabled = true;
+  modal.style.display = 'none';
+}
+
+// Клик по фону — закрыть
+document.getElementById('requestProjectModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeRequestProjectModal();
+});
+
+async function submitProjectRequest(managerTelegramId, comment) {
+  const btn = document.getElementById('sendProjectRequestBtn');
+  btn.disabled = true; const old = btn.textContent; btn.textContent = 'Отправляем...';
+  try {
+    const res = await fetch('https://betters-technology.site/webhook/get-add-project-comment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        manager_telegram_id: managerTelegramId,
+        user_telegram_id: telegram_id,
+        comment
+      })
+    });
+    await res.json().catch(() => ({}));
+    if (res.ok) {
+      alert('✅ Запрос отправлен менеджеру');
+      closeRequestProjectModal();
+    } else {
+      alert('❌ Не удалось отправить запрос. Попробуй ещё раз.');
+    }
+  } catch (e) {
+    alert('❌ Ошибка сети при отправке запроса');
+  } finally {
+    btn.textContent = old; btn.disabled = false;
+  }
 }
 
     function formatHours(decimalHours) {
