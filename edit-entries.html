@@ -247,18 +247,18 @@
           `;
           content.appendChild(div);
         }
+        
+        const monthLocked = isMonthLocked(group.date);
 
-        const entryDate = new Date(group.date);
-        const today = new Date();
-        const diffInDays = (today - entryDate) / (1000 * 60 * 60 * 24);
-
-        if (diffInDays <= 3 && group.filled) {
-          const editBtn = document.createElement('button');
-          editBtn.textContent = '✏️ Редактировать';
-          editBtn.style.marginBottom = '10px';
-          editBtn.onclick = () => enableEditMode(group);
-          content.appendChild(editBtn);
+        if (!monthLocked && group.filled) {
+                const editBtn = document.createElement('button');
+                editBtn.textContent = '✏️ Редактировать';
+                editBtn.style.marginBottom = '10px';
+                editBtn.onclick = () => enableEditMode(group);
+                content.appendChild(editBtn);
         }
+
+        
       });
 
       function formatHoursPretty(value) {
@@ -270,6 +270,12 @@
     }
 
     function confirmMakeWorkingDay(date, reason) {
+
+       if (isMonthLocked(date)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    return;
+  }
+      
   if (!tg?.initDataUnsafe?.user?.id) {
     alert('❌ Telegram ID не найден');
     return;
@@ -298,7 +304,20 @@
     console.error(err);
   });
 }
+    
+function isMonthLocked(dateStr, now = new Date()) {
+  // dateStr формата YYYY-MM-DD → локальная дата без UTC-сдвига
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const entryLocal = new Date(y, m - 1, d);
 
+  // следующий месяц после month(entryLocal)
+  const nextMonth = new Date(entryLocal.getFullYear(), entryLocal.getMonth() + 1, 1);
+  // локальная полночь 6-го числа следующего месяца
+  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 6);
+
+  return now >= lockAt; // если сейчас 6-е (00:00) или позже — месяц залочен
+}
+    
       function enableEditMode(group) {
   content.innerHTML = '';
 
@@ -335,6 +354,12 @@ saveBtn.onclick = () => saveUpdatedEntries(group.date, updatedEntries, saveBtn);
 async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
   saveBtn.disabled = true;
 
+    if (isMonthLocked(date)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    saveBtn.disabled = false;
+    return;
+  }
+
   const entries = updatedEntries.map(e => {
     const val = parseFloat(document.getElementById(e.inputId).value);
     return {
@@ -358,6 +383,7 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
     if (!res.ok) {
       const errorText = await res.text();
       alert('Ошибка сохранения данных: ' + errorText);
+        saveBtn.disabled = false;       // ← вернуть кнопку
       return;
     }
 
