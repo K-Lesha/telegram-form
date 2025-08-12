@@ -1101,31 +1101,44 @@ function confirmSubmit() {
 
   const totalHours = totalMinutes / 60;
 
-const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
 
-if (selectedDay > todayStr) {
-  alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
-  return;
-}
+  // YYYY-MM-DD в MSK
+  const todayMskStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  }).format(now); // en-CA даёт формат 2025-08-12
 
-/* --- проверка “после 18-00 по МСК” --- */
-if (selectedDay === todayStr) {
-  const nowMsk = new Date().toLocaleString('ru-RU', {
-    timeZone: 'Europe/Moscow'
-  });
-  const [dateStr, timeStr] = nowMsk.split(', ');
-  const [hourStr, minuteStr] = timeStr.split(':');
-  const hour = parseInt(hourStr, 10);
-  const minute = parseInt(minuteStr, 10);
+  // Текущее время в MSK через parts (без парсинга строк)
+  const parts = new Intl.DateTimeFormat('ru-RU', {
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  }).formatToParts(now);
 
-  if (hour < 18 || (hour === 18 && minute < 30)) {
-    alert(
-      '🌇 До 18:30 МСК ещё есть время — трекнем часы вечером, я напомню. ' +
-      'Сейчас можно закрыть только прошедшие дни 😊'
-    );
+    const hour = Number(parts.find(p => p.type === 'hour')?.value ?? 0);
+  const minute = Number(parts.find(p => p.type === 'minute')?.value ?? 0);
+
+
+  
+  if (selectedDay > todayMskStr) {
+    alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
     return;
   }
-}
+
+
+  // ===== порог "после 18:30 МСК" только для текущего дня в MSK =====
+  if (selectedDay === todayMskStr) {
+    const before1830 = (hour < 18) || (hour === 18 && minute < 30);
+    if (before1830) {
+      alert(
+        '🌇 До 18:30 МСК ещё есть время — трекнем часы вечером, я напомню. ' +
+        'Сейчас можно закрыть только прошедшие дни 😊'
+      );
+      return;
+    }
+  }
+  // ================================================
+
 
   if (totalHours > 8) {
     const proceed = confirm('⚠️ Ты указал(а) больше 8 часов. Это считается переработкой. Всё ли корректно?');
@@ -1224,10 +1237,20 @@ function collectHours(containers) {
     const m = parseInt(container.dataset.minutes || 0);
     const value = h + m / 60;
 
-    if (value === 0) continue;
+    // Находим проект в списке активных
+    const project = activeProjects.find(p => String(p.project_id) === String(projectId));
+
+    // Если проекта нет или он архивный — пропускаем
+    if (!project || 
+        project.project_status === 'archive' || 
+        project.project_status === 'internal_archive' || 
+        project.is_active_plan === false) {
+      continue;
+    }
 
     const projectName = container.querySelector('.project-title a')?.textContent || 'Без названия';
 
+    // Записываем даже если value === 0
     hours.push({ project_id: projectId, project_name: projectName, value });
   }
 
