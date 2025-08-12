@@ -518,19 +518,23 @@ activeProjects = (data?.active_projects || []).filter(project => {
 });
 
       result.innerHTML = '<h3>Выбери день:</h3>';
-      if (data.unfilled_dates?.length) {
-        data.unfilled_dates.forEach(date => {
-          const btn = document.createElement('button');
-          btn.textContent = formatDate(date);
-          btn.onclick = () => renderFormForDay(date);
-          result.appendChild(btn);
-        });
-      } else {
-        const msg = document.createElement('p');
-        msg.textContent = 'Все дни заполнены 🤝';
-        result.appendChild(msg);
-        document.getElementById('formBlock').innerHTML = '';
-      }
+
+      const unfilled = Array.isArray(data.unfilled_dates) ? data.unfilled_dates : [];
+
+      const visibleDates = unfilled.filter(d => !isMonthLocked(d));
+if (visibleDates.length) {
+  visibleDates.forEach(date => {
+    const btn = document.createElement('button');
+    btn.textContent = formatDate(date);
+    btn.onclick = () => renderFormForDay(date);
+    result.appendChild(btn);
+  });
+} else {
+  const msg = document.createElement('p');
+  msg.textContent = 'Все доступные дни заполнены 🤝';
+  result.appendChild(msg);
+  document.getElementById('formBlock').innerHTML = '';
+}
 
 // Всегда добавляем кнопку "Другой день"
       const otherBtn = document.createElement('button');
@@ -591,6 +595,11 @@ function cancelLeaveTypeSelection() {
 }
 
       async function sendLeaveWithoutDay(start_date, end_date, type) {
+          if (rangeHasLockedDay(start_date, end_date)) {
+    alert('❌ Диапазон содержит дни закрытого месяца.');
+    return;
+  }
+        
   await fetch('https://betters-technology.site/webhook/add-vacation', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -603,6 +612,16 @@ function cancelLeaveTypeSelection() {
   });
 }
 
+    function rangeHasLockedDay(start, end) {
+  const s = new Date(start), e = new Date(end);
+  for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+    const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate();
+    const iso = `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    if (isMonthLocked(iso)) return true;
+  }
+  return false;
+}
+
 function closeCustomDateModal() {
   document.getElementById('customDateModal').style.display = 'none';
   document.getElementById('customDateInput').value = '';
@@ -610,20 +629,31 @@ function closeCustomDateModal() {
     
 async function confirmCustomDate() {
   const input = document.getElementById('customDateInput').value;
-  if (!input) {
-    alert('Пожалуйста, выбери дату.');
+  if (!input) { alert('Пожалуйста, выбери дату.'); return; }
+
+  if (isMonthLocked(input)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
     return;
   }
 
   closeCustomDateModal();
-
-  // Заново подгружаем проекты перед отрисовкой
   await loadUserData();
-
   renderFormForDay(input);
 }
-
+function isMonthLocked(dateStr, now = new Date()) {
+  // dateStr: "YYYY-MM-DD" → локальная дата
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const entryLocal = new Date(y, m - 1, d);
+  // 6-е число следующего месяца
+  const nextMonth = new Date(entryLocal.getFullYear(), entryLocal.getMonth() + 1, 1);
+  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 6);
+  return now >= lockAt;
+}
 function renderFormForDay(day) {
+  if (isMonthLocked(day)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    return;
+  }
 
   // Обновляем стили всех кнопок-дней
 document.querySelectorAll('#result button').forEach(btn => {
@@ -866,6 +896,11 @@ function submitForm(button) {
 }
     
 async function skipDay() {
+    if (isMonthLocked(selectedDay)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    return;
+  }
+
   let reason;
   try {
     reason = await showSkipReasonModal();
@@ -1155,6 +1190,12 @@ function closeConfirmation() {
 }
 
     async function finalSubmitForm(button) {
+        if (isMonthLocked(selectedDay)) {
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    return;
+  }
+
+      
       const form = document.getElementById('formBlock');
         const containers = form.querySelectorAll('[data-project-id]');
         const hours = collectHours(containers);
