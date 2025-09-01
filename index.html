@@ -1301,21 +1301,27 @@ function collectHours(containers) {
 function checkOvertimeAndNotify(hours) {
   for (const entry of hours) {
     const { project_id, project_name, value } = entry;
-   const project = activeProjects.find(
+
+    // ⛔️ Ничего не отправляем, если в эту отправку по проекту 0 ч
+    if (!value || value <= 0) continue;
+
+    const project = activeProjects.find(
       p => String(p.project_id) === String(project_id)
     );
-    
     if (!project) continue;
 
-    const actual = parseFloat(project.actual_hours || 0);
-    const planned = parseFloat(project.planned_hours || 0);
-    const contracted = parseFloat(project.contracted_hours || 0);
-    const total = actual + value;
+    const actual     = Number(project.actual_hours || 0);
+    const planned    = Number(project.planned_hours || 0);
+    const contracted = Number(project.contracted_hours || 0);
 
     const limit = contracted > 0 ? contracted : planned;
-    const type = contracted > 0 ? 'contracted' : (planned > 0 ? 'planned' : null);
+    if (!(limit > 0)) continue;
 
-    if (limit > 0 && total > limit) {
+    const total = actual + value;
+    const type  = contracted > 0 ? 'contracted' : (planned > 0 ? 'planned' : null);
+
+    // ✅ Уведомляем только при пересечении лимита именно этой отправкой
+    if (actual <= limit && total > limit) {
       const payload = {
         project_id,
         project_name,
@@ -1323,7 +1329,7 @@ function checkOvertimeAndNotify(hours) {
         user_name: tg?.initDataUnsafe?.user?.first_name || '—',
         user_nick: tg?.initDataUnsafe?.user?.username || '—',
         comparison_type: type,
-        total_hours: parseFloat(total.toFixed(2))
+        total_hours: Number(total.toFixed(2))
       };
 
       fetch('https://betters-technology.site/webhook/notify-manager-about-overload', {
