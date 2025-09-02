@@ -1360,6 +1360,27 @@ function checkOvertimeAndNotify(hours) {
         content.appendChild(btn);
       }
 
+      // Добавляем кнопку "Другое количество"
+      const customBtn = document.createElement('button');
+      customBtn.textContent = 'Другое количество';
+      customBtn.className = 'btn-alt';
+      customBtn.onclick = () => promptCustomHours();
+      content.appendChild(customBtn);
+
+      function promptCustomHours() {
+        const hours = prompt('Введите количество часов (только целые числа, например: 9, 10, 12):');
+        if (hours !== null && hours.trim() !== '') {
+          const parsedHours = parseInt(hours);
+          if (!isNaN(parsedHours) && parsedHours >= 0 && parsedHours === parseFloat(hours)) {
+            // Закрываем модальное окно и переходим к выбору минут
+            modal.style.display = 'none';
+            chooseMinutes(parsedHours);
+          } else {
+            alert('Пожалуйста, введите корректное целое число часов (например: 9, 10, 12)');
+          }
+        }
+      }
+
       function chooseMinutes(selectedHours) {
         content.innerHTML = '<h3>Сколько минут?</h3>';
         [0, 5, 10, 15, 30, 45].forEach(min => {
