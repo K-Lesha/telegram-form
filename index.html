@@ -1372,8 +1372,7 @@ function checkOvertimeAndNotify(hours) {
         if (hours !== null && hours.trim() !== '') {
           const parsedHours = parseInt(hours);
           if (!isNaN(parsedHours) && parsedHours >= 0 && parsedHours === parseFloat(hours)) {
-            // Закрываем модальное окно и переходим к выбору минут
-            modal.style.display = 'none';
+            // НЕ закрываем модальное окно, а переходим к выбору минут
             chooseMinutes(parsedHours);
           } else {
             alert('Пожалуйста, введите корректное целое число часов (например: 9, 10, 12)');
