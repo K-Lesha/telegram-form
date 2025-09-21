@@ -63,11 +63,70 @@ button:hover {
   border: 1px solid #000000;
 }
 
-.btn-alt:hover {
+    .btn-alt:hover {
   background-color: #444444;
   color: white;
   border-color: #444444;
 }
+
+    /* Стили для поля поиска */
+    .search-container {
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      padding: 12px 16px;
+      font-size: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease;
+      font-family: 'Factor A Web', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #000000;
+    }
+
+    .search-input::placeholder {
+      color: #999;
+    }
+
+    .search-indicator {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #666;
+      font-style: italic;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 18px;
+      cursor: pointer;
+      color: #999;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .search-clear:hover {
+      color: #333;
+    }
+
+    .search-clear.hidden {
+      display: none;
+    }
 
     /* Новое правило для кнопки "Указать время" */
     .select-time-btn {
@@ -723,7 +782,14 @@ document.querySelectorAll('#result button').forEach(btn => {
   
   selectedDay = day;
   const form = document.getElementById('formBlock');
-  form.innerHTML = `<h3>Заполнить часы на 📅 ${formatDate(day)}</h3>`;
+  form.innerHTML = `
+    <h3>Заполнить часы на 📅 ${formatDate(day)}</h3>
+    <div class="search-container">
+      <input type="text" id="projectSearch" class="search-input" placeholder="🔍 Поиск проектов..." />
+      <button id="searchClear" class="search-clear hidden" onclick="clearSearch()">✕</button>
+      <div id="searchIndicator" class="search-indicator"></div>
+    </div>
+  `;
 
   const grouped = {
     active: [],
@@ -834,6 +900,9 @@ requestRow.appendChild(spacer2);
 form.appendChild(requestRow);
     }
   });
+
+  // Настройка поиска
+  setupProjectSearch();
 
   // Кнопка отправки
   const submitBtn = document.createElement('button');
@@ -1671,6 +1740,108 @@ function closeProjectModal() {
     cancelLeaveTypeSelection();
   }
 });
+
+    // Функции для поиска проектов
+    function setupProjectSearch() {
+      const searchInput = document.getElementById('projectSearch');
+      const searchClear = document.getElementById('searchClear');
+      const searchIndicator = document.getElementById('searchIndicator');
+      
+      if (!searchInput) return;
+
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        // Показываем/скрываем кнопку очистки
+        if (searchTerm.length > 0) {
+          searchClear.classList.remove('hidden');
+        } else {
+          searchClear.classList.add('hidden');
+        }
+        
+        // Фильтруем проекты
+        filterProjects(searchTerm);
+      });
+
+      // Очистка поиска при нажатии Enter
+      searchInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          clearSearch();
+        }
+      });
+    }
+
+    function filterProjects(searchTerm) {
+      const projectRows = document.querySelectorAll('.project-row');
+      const sections = document.querySelectorAll('#formBlock > div');
+      let totalFound = 0;
+      let totalVisible = 0;
+
+      sections.forEach(section => {
+        if (section.querySelector('h3')) {
+          // Это секция с заголовком (Активные, Внутренние, Архив)
+          const sectionTitle = section.querySelector('h3');
+          const sectionRows = section.querySelectorAll('.project-row');
+          let sectionFound = 0;
+
+          sectionRows.forEach(row => {
+            const projectName = row.querySelector('.project-title a')?.textContent || '';
+            const isMatch = searchTerm === '' || projectName.toLowerCase().includes(searchTerm);
+            
+            if (isMatch) {
+              row.style.display = 'flex';
+              sectionFound++;
+              totalFound++;
+            } else {
+              row.style.display = 'none';
+            }
+          });
+
+          // Показываем/скрываем секцию в зависимости от найденных проектов
+          if (sectionFound > 0) {
+            section.style.display = 'block';
+            totalVisible++;
+          } else if (searchTerm !== '') {
+            section.style.display = 'none';
+          } else {
+            section.style.display = 'block';
+          }
+        }
+      });
+
+      // Обновляем индикатор
+      updateSearchIndicator(searchTerm, totalFound, totalVisible);
+    }
+
+    function updateSearchIndicator(searchTerm, found, visible) {
+      const indicator = document.getElementById('searchIndicator');
+      if (!indicator) return;
+
+      if (searchTerm === '') {
+        indicator.textContent = '';
+      } else if (found === 0) {
+        indicator.textContent = '🔍 Проекты не найдены';
+        indicator.style.color = '#e74c3c';
+      } else {
+        const sectionsText = visible === 1 ? 'секции' : 'секциях';
+        indicator.textContent = `🔍 Найдено ${found} проектов в ${visible} ${sectionsText}`;
+        indicator.style.color = '#27ae60';
+      }
+    }
+
+    function clearSearch() {
+      const searchInput = document.getElementById('projectSearch');
+      const searchClear = document.getElementById('searchClear');
+      const searchIndicator = document.getElementById('searchIndicator');
+      
+      if (searchInput) {
+        searchInput.value = '';
+        searchClear.classList.add('hidden');
+        searchIndicator.textContent = '';
+        filterProjects('');
+        searchInput.focus();
+      }
+    }
     
     
   </script>
