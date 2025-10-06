@@ -745,7 +745,7 @@ async function confirmCustomDate() {
   if (!input) { alert('Пожалуйста, выбери дату.'); return; }
 
   if (isMonthLocked(input)) {
-    alert('❌ Этот месяц закрыт для изменений (с 7-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
     return;
   }
 
@@ -757,14 +757,14 @@ function isMonthLocked(dateStr, now = new Date()) {
   // dateStr: "YYYY-MM-DD" → локальная дата
   const [y, m, d] = dateStr.split('-').map(Number);
   const entryLocal = new Date(y, m - 1, d);
-  // 7-е число следующего месяца
+  // 6-е число следующего месяца
   const nextMonth = new Date(entryLocal.getFullYear(), entryLocal.getMonth() + 1, 1);
-  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 7);
+  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 6);
   return now >= lockAt;
 }
 function renderFormForDay(day) {
   if (isMonthLocked(day)) {
-    alert('❌ Этот месяц закрыт для изменений (с 7-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
     return;
   }
 
@@ -1019,7 +1019,7 @@ function submitForm(button) {
     
 async function skipDay() {
     if (isMonthLocked(selectedDay)) {
-    alert('❌ Этот месяц закрыт для изменений (с 7-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
     return;
   }
 
@@ -1313,7 +1313,7 @@ function closeConfirmation() {
 
     async function finalSubmitForm(button) {
         if (isMonthLocked(selectedDay)) {
-    alert('❌ Этот месяц закрыт для изменений (с 7-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
     return;
   }
 
