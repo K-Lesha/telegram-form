@@ -171,6 +171,7 @@ button:hover {
 
       let currentProjectId = null;
 let currentUserId = null;
+let allProjects = []; // Сохраняем все проекты для получения текущего статуса
 
   async function loadProjects() {
     
@@ -194,6 +195,7 @@ let currentUserId = null;
       console.log('Результат запроса:', data);
 
       data = data.filter(p => p.project_status !== 'deleted');
+      allProjects = data; // Сохраняем для использования в updateProject
       
       const container = document.getElementById('projects');
       container.innerHTML = '';
@@ -203,8 +205,8 @@ let currentUserId = null;
         return;
       }
 
-      const active = data.filter(p => p.project_status !== 'archive');
-      const archive = data.filter(p => p.project_status === 'archive');
+      const active = data.filter(p => p.project_status !== 'archive' && p.project_status !== 'presale_archive');
+      const archive = data.filter(p => p.project_status === 'archive' || p.project_status === 'presale_archive');
 
       // Активные
       active.forEach(project => {
@@ -231,7 +233,7 @@ let currentUserId = null;
 
   card.innerHTML = `
     <h2>${project.project_name}
-      ${project.project_status === 'archive' ? '<span style="color: #999; font-size: 12px; margin-left: 8px;">(ARCHIVE)</span>' : ''}
+      ${project.project_status === 'archive' || project.project_status === 'presale_archive' ? '<span style="color: #999; font-size: 12px; margin-left: 8px;">(ARCHIVE)</span>' : ''}
     </h2>
     <label>Дата начала проекта</label>
     <input type="date" value="${project.start_date || ''}" id="start-${project.project_id}" />
@@ -239,7 +241,7 @@ let currentUserId = null;
     <input type="date" value="${project.end_date || ''}" id="end-${project.project_id}" />
     <div class="toggle">
       <label>В архиве</label>
-      <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' ? 'checked' : ''} />
+      <input type="checkbox" id="archived-${project.project_id}" ${project.project_status === 'archive' || project.project_status === 'presale_archive' ? 'checked' : ''} />
     </div>
     <button onclick="updateProject(${project.project_id})">Save</button>
   `;
@@ -361,11 +363,25 @@ nameSpan.style.color = '#007aff';
       const endDate = document.getElementById(`end-${projectId}`).value;
       const isArchived = document.getElementById(`archived-${projectId}`).checked;
 
+      // Находим текущий проект для определения текущего статуса
+      const currentProject = allProjects.find(p => p.project_id === projectId);
+      const currentStatus = currentProject?.project_status || 'active';
+
+      // Определяем новый статус: presale ↔ presale_archive, active ↔ archive
+      let newStatus;
+      if (isArchived) {
+        // Архивируем: presale → presale_archive, active → archive
+        newStatus = (currentStatus === 'presale') ? 'presale_archive' : 'archive';
+      } else {
+        // Разархивируем: presale_archive → presale, archive → active
+        newStatus = (currentStatus === 'presale_archive') ? 'presale' : 'active';
+      }
+
       const payload = {
         project_id: projectId,
         start_date: startDate,
         end_date: endDate,
-        project_status: isArchived ? 'archive' : 'active'
+        project_status: newStatus
       };
 
       const res = await fetch('https://betters-technology.site/webhook/update-project-status', {

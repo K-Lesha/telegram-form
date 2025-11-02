@@ -251,11 +251,17 @@
         const monthLocked = isMonthLocked(group.date);
 
         if (!monthLocked && group.filled) {
-                const editBtn = document.createElement('button');
-                editBtn.textContent = '✏️ Редактировать';
-                editBtn.style.marginBottom = '10px';
-                editBtn.onclick = () => enableEditMode(group);
-                content.appendChild(editBtn);
+          // Проверяем, есть ли записи с архивными проектами
+          const hasArchivedProjects = Array.isArray(group.entries) && 
+            group.entries.some(e => e.project_status === 'archive' || e.project_status === 'presale_archive');
+          
+          if (!hasArchivedProjects) {
+            const editBtn = document.createElement('button');
+            editBtn.textContent = '✏️ Редактировать';
+            editBtn.style.marginBottom = '10px';
+            editBtn.onclick = () => enableEditMode(group);
+            content.appendChild(editBtn);
+          }
         }
 
         
@@ -334,10 +340,11 @@ function isMonthLocked(dateStr, now = new Date()) {
 
     const name = e.project_name ?? `Проект #${e.project_id ?? '?'}`;
     const inputId = `input_${group.date}_${e.project_id}`;
+    const isArchived = e.project_status === 'archive' || e.project_status === 'presale_archive';
 
     div.innerHTML = `
-      <div class="project">${name}</div>
-      <input type="number" id="${inputId}" value="${e.hours}" step="0.25" style="margin-top:4px;padding:8px;width:100px;border-radius:6px;border:1px solid #ccc;" />
+      <div class="project">${name}${isArchived ? ' <span style="color: #999; font-size: 12px;">(Архив)</span>' : ''}</div>
+      <input type="number" id="${inputId}" value="${e.hours}" step="0.25" style="margin-top:4px;padding:8px;width:100px;border-radius:6px;border:1px solid #ccc;" ${isArchived ? 'disabled' : ''} />
     `;
 
     content.appendChild(div);

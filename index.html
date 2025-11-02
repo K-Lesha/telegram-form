@@ -806,12 +806,12 @@ document.querySelectorAll('#result button').forEach(btn => {
     if (status === 'internal') {
       grouped.internal.push(project);
     }
-    // Архив: project_status == 'archive' или is_active_plan === false
-    else if (status === 'archive' || project.is_active_plan === false || status === 'internal_archive') {
+    // Архив: project_status == 'archive' или 'presale_archive' или is_active_plan === false
+    else if (status === 'archive' || status === 'presale_archive' || project.is_active_plan === false || status === 'internal_archive') {
       grouped.archive.push(project);
     }
-    // Активные: только если явно is_active_plan === true
-    else if (project.is_active_plan === true) {
+    // Активные: active и presale, только если явно is_active_plan === true
+    else if (project.is_active_plan === true || status === 'active' || status === 'presale') {
       grouped.active.push(project);
     }
     // Остальные (например, если is_active_plan === null) — не добавляем вовсе
@@ -962,7 +962,8 @@ setTimeout(() => {
   // ❌ Блокируем кнопку, если проект архивный или пользователь неактивен на нём
   const isArchived =
   project.project_status === 'archive' ||
-  project.project_status === 'internal_archive' || // ← добавили это
+  project.project_status === 'presale_archive' ||
+  project.project_status === 'internal_archive' ||
   project.is_active_plan === false;
       
   if (isArchived) {
@@ -1406,6 +1407,7 @@ function collectHours(containers) {
     // Если проекта нет или он архивный — пропускаем
     if (!project || 
         project.project_status === 'archive' || 
+        project.project_status === 'presale_archive' || 
         project.project_status === 'internal_archive' || 
         project.is_active_plan === false) {
       continue;
