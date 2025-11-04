@@ -189,7 +189,7 @@ button:hover {
 }
 
 .project-title a {
-  color: #000000; /* Мягкий синий */
+  color: #000000;
   text-decoration: underline;
   font-weight: 600;
   cursor: pointer;
@@ -473,7 +473,7 @@ button:hover {
     <h3>Выбери причину пропуска</h3>
     <button onclick="selectSkipReason('sick_leave')">🤧 Больничный</button>
     <button onclick="selectSkipReason('vacation')">🏖 Отпуск</button>
-    <button class="btn-alt" onclick="cancelSkipReason()">✖️ Отмена</button>
+    <button class="btn-alt" onclick="cancelSkipReason()">✖️ Отменить</button>
   </div>
 </div>
 
@@ -494,7 +494,7 @@ button:hover {
     <label>Конец отпуска:</label>
     <input type="date" id="vacationEnd" />
     <button onclick="confirmVacationDates()">✅ Подтвердить</button>
-    <button class="btn-alt" onclick="cancelVacationDates()">✖️ Отмена</button>
+    <button class="btn-alt" onclick="cancelVacationDates()">✖️ Отменить</button>
   </div>
 </div>
 
@@ -507,7 +507,7 @@ button:hover {
     <label>Конец больничного:</label>
     <input type="date" id="sickLeaveEnd" />
     <button onclick="confirmSickLeaveDates()">✅ Подтвердить</button>
-    <button class="btn-alt" onclick="cancelSickLeaveDates()">✖️ Отмена</button>
+    <button class="btn-alt" onclick="cancelSickLeaveDates()">✖️ Отменить</button>
   </div>
 </div>
 
@@ -530,7 +530,7 @@ button:hover {
 
     <div style="margin-top:16px; display:flex; gap:8px; flex-wrap:wrap;">
       <button id="sendProjectRequestBtn" disabled>Отправить</button>
-      <button class="btn-alt" onclick="closeRequestProjectModal()">✖️ Отмена</button>
+      <button class="btn-alt" onclick="closeRequestProjectModal()">✖️ Отменить</button>
     </div>
   </div>
 </div>
@@ -564,7 +564,7 @@ button:hover {
     <h3>Выбери дату</h3>
     <input type="date" id="customDateInput" style="margin: 12px 0;" />
     <button onclick="confirmCustomDate()">✅ Подтвердить</button>
-    <button class="btn-alt" onclick="closeCustomDateModal()">✖️ Отмена</button>
+    <button class="btn-alt" onclick="closeCustomDateModal()">✖️ Отменить</button>
   </div>
 </div>
 
@@ -574,29 +574,26 @@ button:hover {
     <h3>Выбери тип отсутствия</h3>
     <button onclick="handleLeaveTypeSelection('vacation')">🏖 Отпуск</button>
     <button onclick="handleLeaveTypeSelection('sick_leave')">🤧 Больничный</button>
-    <button class="btn-alt" onclick="cancelLeaveTypeSelection()">✖️ Отмена</button>
+    <button class="btn-alt" onclick="cancelLeaveTypeSelection()">✖️ Отменить</button>
   </div>
 </div>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-
-
-    
-    
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    let telegram_id = '—';
+    let telegram_id = '217500012'; // Временно для тестов
     let activeProjects = [];
     let selectedDay = null;
     let managersCache = []; // [{ id: 295619064, name: "..." }, ...]
 
-    try {
-      telegram_id = tg?.initDataUnsafe?.user?.id || '—';
-    } catch (err) {
-      console.warn('Telegram ID недоступен', err);
-    }
+    // Временно закомментировано для тестов
+    // try {
+    //   telegram_id = tg?.initDataUnsafe?.user?.id || '—';
+    // } catch (err) {
+    //   console.warn('Telegram ID недоступен', err);
+    // }
 
     function showSkeleton() {
       const result = document.getElementById('result');
@@ -871,33 +868,35 @@ document.querySelectorAll('#result button').forEach(btn => {
 
       form.appendChild(container);
 
-       // Строка "Запросить проект в форму"
-const requestRow = document.createElement('div');
-requestRow.className = 'project-row';
-requestRow.style.borderTop = '1px dashed #ddd';
-requestRow.style.paddingTop = '12px';
-requestRow.style.marginTop = '12px';
+      // Строка "Запросить проект в форму" - только для активных проектов
+      if (status === 'active') {
+        const requestRow = document.createElement('div');
+        requestRow.className = 'project-row';
+        requestRow.style.borderTop = '1px dashed #ddd';
+        requestRow.style.paddingTop = '12px';
+        requestRow.style.marginTop = '12px';
 
-const reqTitle = document.createElement('div');
-reqTitle.className = 'project-title';
-const reqLink = document.createElement('a');
-reqLink.textContent = '📨 Запросить проект в форму';
-reqLink.href = 'javascript:void(0)';
-reqLink.onclick = openRequestProjectModal;
-reqTitle.appendChild(reqLink);
-requestRow.appendChild(reqTitle);
+        const reqTitle = document.createElement('div');
+        reqTitle.className = 'project-title';
+        const reqLink = document.createElement('a');
+        reqLink.textContent = '📨 Запросить проект в форму';
+        reqLink.href = 'javascript:void(0)';
+        reqLink.onclick = openRequestProjectModal;
+        reqTitle.appendChild(reqLink);
+        requestRow.appendChild(reqTitle);
 
-// Пустые ячейки для выравнивания
-const spacer1 = document.createElement('div');
-spacer1.className = 'time-display';
-spacer1.textContent = '';
-requestRow.appendChild(spacer1);
+        // Пустые ячейки для выравнивания
+        const spacer1 = document.createElement('div');
+        spacer1.className = 'time-display';
+        spacer1.textContent = '';
+        requestRow.appendChild(spacer1);
 
-const spacer2 = document.createElement('div');
-spacer2.style.width = '80px';
-requestRow.appendChild(spacer2);
+        const spacer2 = document.createElement('div');
+        spacer2.style.width = '80px';
+        requestRow.appendChild(spacer2);
 
-form.appendChild(requestRow);
+        form.appendChild(requestRow);
+      }
     }
   });
 
@@ -918,6 +917,22 @@ form.appendChild(requestRow);
   skipBtn.onclick = () => skipDay();
   skipBtn.className = 'skip-btn';
   form.appendChild(skipBtn);
+
+  // Кнопка отмены
+  const cancelBtn = document.createElement('button');
+  cancelBtn.textContent = '✖️ Отменить';
+  cancelBtn.className = 'skip-btn';
+  cancelBtn.onclick = () => {
+    // Очищаем форму
+    form.innerHTML = '';
+    selectedDay = null;
+    
+    // Сбрасываем стили кнопок дней
+    document.querySelectorAll('#result button').forEach(btn => {
+      btn.classList.remove('selected-day', 'collapsed-day');
+    });
+  };
+  form.appendChild(cancelBtn);
 
   // Прокрутка вниз к форме
 setTimeout(() => {
@@ -941,8 +956,6 @@ setTimeout(() => {
   link.href = 'javascript:void(0)';
   title.appendChild(link);
 
-  const actual = project.actual_hours ?? 0;
-  const planned = project.planned_hours ?? 0;
   const hoursInfo = document.createElement('span');
   hoursInfo.className = 'project-hours';
   hoursInfo.textContent = project.comment;
@@ -960,17 +973,11 @@ setTimeout(() => {
   selectTimeBtn.className = 'select-time-btn';
 
   // ❌ Блокируем кнопку, если проект архивный или пользователь неактивен на нём
-  const isArchived =
-  project.project_status === 'archive' ||
-  project.project_status === 'presale_archive' ||
-  project.project_status === 'internal_archive' ||
-  project.is_active_plan === false;
-      
-  if (isArchived) {
+  if (isProjectArchived(project)) {
     selectTimeBtn.disabled = true;
     selectTimeBtn.title = 'Нельзя вносить часы в архивный проект';
   } else {
-    selectTimeBtn.onclick = () => openTimePicker(project.id, container);
+    selectTimeBtn.onclick = () => openTimePicker(container);
   }
 
   container.appendChild(selectTimeBtn);
@@ -1031,77 +1038,44 @@ async function skipDay() {
     return;
   }
 
-  let vacationDates = null;
+  if (reason === 'vacation' || reason === 'sick_leave') {
+    let dates = null;
+    let cancelled = false;
+    const typeName = reason === 'vacation' ? 'отпуска' : 'больничного';
 
-  if (reason === 'vacation') {
-  let vacationCancelled = false;
+    try {
+      dates = reason === 'vacation' 
+        ? await promptVacationDates() 
+        : await promptSickLeaveDates();
+    } catch (e) {
+      cancelled = true;
+    }
 
-  try {
-    vacationDates = await promptVacationDates();
-  } catch (e) {
-    vacationCancelled = true;
+    if (cancelled) {
+      return await skipDay();
+    }
+
+    const selected = new Date(selectedDay);
+    const startDate = new Date(dates.start_date);
+    const endDate = new Date(dates.end_date);
+
+    if (selected < startDate || selected > endDate) {
+      alert(`❌ Дата ${formatDate(selectedDay)} не входит в выбранный диапазон ${typeName}.`);
+      return await skipDay();
+    }
+
+    // ✅ Если всё ок — записываем отпуск/больничный
+    await fetch('https://betters-technology.site/webhook/add-vacation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id,
+        start_date: dates.start_date,
+        end_date: dates.end_date,
+        type: reason
+      })
+    });
   }
-
-  if (vacationCancelled) {
-    return await skipDay();
-  }
-
-  const selected = new Date(selectedDay);
-  const vacationStartDate = new Date(vacationDates.start_date);
-  const vacationEndDate = new Date(vacationDates.end_date);
-
-  if (selected < vacationStartDate || selected > vacationEndDate) {
-    alert(`❌ Дата ${formatDate(selectedDay)} не входит в выбранный диапазон отпуска.`);
-    return await skipDay(); // Повторный выбор причины
-  }
-
-  // ✅ Если всё ок — записываем отпуск
-  await fetch('https://betters-technology.site/webhook/add-vacation', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegram_id,
-      start_date: vacationDates.start_date,
-      end_date: vacationDates.end_date,
-      type: 'vacation'
-    })
-  });
-}
-
-  if (reason === 'sick_leave') {
-  let sickCancelled = false;
-
-  let sickDates;
-  try {
-    sickDates = await promptSickLeaveDates();
-  } catch (e) {
-    sickCancelled = true;
-  }
-
-  if (sickCancelled) return await skipDay();
-
-  // Проверка: выбранная дата входит в больничный
-  const selected = new Date(selectedDay);
-  const sickStart = new Date(sickDates.start_date);
-  const sickEnd = new Date(sickDates.end_date);
-
-  if (selected < sickStart || selected > sickEnd) {
-    alert(`❌ Дата ${formatDate(selectedDay)} не входит в диапазон больничного`);
-    return await skipDay();
-  }
-
-  // Отправка больничного
-  await fetch('https://betters-technology.site/webhook/add-vacation', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegram_id,
-      start_date: sickDates.start_date,
-      end_date: sickDates.end_date,
-      type: 'sick_leave' // 👈 передаем тип
-    })
-  });
-}
 
   const payload = {
     telegram_id,
@@ -1134,25 +1108,39 @@ const res = await fetch('https://betters-technology.site/webhook/submit-hours', 
   }
 }
 
-  function promptVacationDates() {
-  return new Promise((resolve, reject) => {
-    window._vacationDateResolver = resolve;
-    window._vacationDateRejecter = reject;
-    document.getElementById('vacationDateModal').style.display = 'flex';
-  });
-}
+  // Хранилище резолверов в замыкании (вместо window._*)
+  const leaveDateResolvers = new Map();
+
+  function promptLeaveDates(type) {
+    const prefix = type === 'vacation' ? 'vacation' : 'sickLeave';
+    
+    // Очищаем предыдущий резолвер, если он есть (защита от двойного открытия)
+    if (leaveDateResolvers.has(prefix)) {
+      const old = leaveDateResolvers.get(prefix);
+      if (old.rejecter) {
+        old.rejecter('cancelled');
+      }
+      leaveDateResolvers.delete(prefix);
+    }
+    
+    return new Promise((resolve, reject) => {
+      leaveDateResolvers.set(prefix, { resolver: resolve, rejecter: reject });
+      document.getElementById(`${prefix}DateModal`).style.display = 'flex';
+    });
+  }
+
+    function promptVacationDates() {
+      return promptLeaveDates('vacation');
+    }
 
     function promptSickLeaveDates() {
-  return new Promise((resolve, reject) => {
-    window._sickLeaveDateResolver = resolve;
-    window._sickLeaveDateRejecter = reject;
-    document.getElementById('sickLeaveDateModal').style.display = 'flex';
-  });
-}
+      return promptLeaveDates('sick_leave');
+    }
 
-window.confirmSickLeaveDates = function () {
-  const startInput = document.getElementById('sickLeaveStart');
-  const endInput = document.getElementById('sickLeaveEnd');
+function confirmLeaveDates(type) {
+  const prefix = type === 'vacation' ? 'vacation' : 'sickLeave';
+  const startInput = document.getElementById(`${prefix}Start`);
+  const endInput = document.getElementById(`${prefix}End`);
   const start = startInput.value;
   const end = endInput.value;
 
@@ -1161,27 +1149,40 @@ window.confirmSickLeaveDates = function () {
     return;
   }
 
-  document.getElementById('sickLeaveDateModal').style.display = 'none';
+  document.getElementById(`${prefix}DateModal`).style.display = 'none';
   startInput.value = '';
   endInput.value = '';
 
-  if (window._sickLeaveDateResolver) {
-    window._sickLeaveDateResolver({ start_date: start, end_date: end });
-    window._sickLeaveDateResolver = null;
-    window._sickLeaveDateRejecter = null;
+  const resolverData = leaveDateResolvers.get(prefix);
+  if (resolverData) {
+    resolverData.resolver({ start_date: start, end_date: end });
+    leaveDateResolvers.delete(prefix);
   }
+}
+
+function cancelLeaveDates(type) {
+  const prefix = type === 'vacation' ? 'vacation' : 'sickLeave';
+  const modal = document.getElementById(`${prefix}DateModal`);
+  const startInput = document.getElementById(`${prefix}Start`);
+  const endInput = document.getElementById(`${prefix}End`);
+  
+  modal.style.display = 'none';
+  startInput.value = '';
+  endInput.value = '';
+
+  const resolverData = leaveDateResolvers.get(prefix);
+  if (resolverData) {
+    resolverData.rejecter('cancelled');
+    leaveDateResolvers.delete(prefix);
+  }
+}
+
+window.confirmSickLeaveDates = function () {
+  confirmLeaveDates('sick_leave');
 };
 
 window.cancelSickLeaveDates = function () {
-  document.getElementById('sickLeaveDateModal').style.display = 'none';
-  document.getElementById('sickLeaveStart').value = '';
-  document.getElementById('sickLeaveEnd').value = '';
-
-  if (window._sickLeaveDateRejecter) {
-    window._sickLeaveDateRejecter('cancelled');
-    window._sickLeaveDateResolver = null;
-    window._sickLeaveDateRejecter = null;
-  }
+  cancelLeaveDates('sick_leave');
 };
 
     function showSkipReasonModal() {
@@ -1208,38 +1209,12 @@ window.cancelSickLeaveDates = function () {
   });
 }
 
-   window.confirmVacationDates = function () {
-  const startInput = document.getElementById('vacationStart');
-  const endInput = document.getElementById('vacationEnd');
-  const start = startInput.value;
-  const end = endInput.value;
-
-  if (!start || !end || new Date(start) > new Date(end)) {
-    alert('Проверь корректность дат');
-    return;
-  }
-
-  document.getElementById('vacationDateModal').style.display = 'none';
-  startInput.value = '';
-  endInput.value = '';
-
-  if (window._vacationDateResolver) {
-    window._vacationDateResolver({ start_date: start, end_date: end });
-    window._vacationDateResolver = null;
-    window._vacationDateRejecter = null;
-  }
+window.confirmVacationDates = function () {
+  confirmLeaveDates('vacation');
 };
 
 window.cancelVacationDates = function () {
-  document.getElementById('vacationDateModal').style.display = 'none';
-  document.getElementById('vacationStart').value = '';
-  document.getElementById('vacationEnd').value = '';
-
-  if (window._vacationDateRejecter) {
-    window._vacationDateRejecter('cancelled');
-    window._vacationDateResolver = null;
-    window._vacationDateRejecter = null;
-  }
+  cancelLeaveDates('vacation');
 };
 
 
@@ -1276,8 +1251,6 @@ function confirmSubmit() {
     const hour = Number(parts.find(p => p.type === 'hour')?.value ?? 0);
   const minute = Number(parts.find(p => p.type === 'minute')?.value ?? 0);
 
-
-  
   if (selectedDay > todayMskStr) {
     alert('❌ Нельзя вносить часы за будущие дни. Выберите сегодня или ранее.');
     return;
@@ -1318,12 +1291,10 @@ function closeConfirmation() {
     return;
   }
 
-      
       const form = document.getElementById('formBlock');
         const containers = form.querySelectorAll('[data-project-id]');
         const hours = collectHours(containers);
         checkOvertimeAndNotify(hours);
-
 
       const payload = {
           telegram_id,
@@ -1376,13 +1347,8 @@ function closeConfirmation() {
         button.disabled = false;
         button.textContent = '📝 Записать';
 
-        if (!fresh.unfilled_dates?.length) {
-          form.innerHTML = '';
-          await loadUserData();
-        } else {
-          form.innerHTML = '';
-          await loadUserData();
-        }
+        form.innerHTML = '';
+        await loadUserData();
       } else {
   const errorDetails = typeof result === 'object' ? JSON.stringify(result, null, 2) : String(result);
   alert(`❌ Ошибка при сохранении:\n${errorDetails}`);
@@ -1405,11 +1371,7 @@ function collectHours(containers) {
     const project = activeProjects.find(p => String(p.project_id) === String(projectId));
 
     // Если проекта нет или он архивный — пропускаем
-    if (!project || 
-        project.project_status === 'archive' || 
-        project.project_status === 'presale_archive' || 
-        project.project_status === 'internal_archive' || 
-        project.is_active_plan === false) {
+    if (!project || isProjectArchived(project)) {
       continue;
     }
 
@@ -1467,7 +1429,7 @@ function checkOvertimeAndNotify(hours) {
 
     
 
-    function openTimePicker(projectId, container) {
+    function openTimePicker(container) {
       const modal = document.getElementById('timePickerModal');
       const content = document.getElementById('timePickerContent');
 
@@ -1515,8 +1477,7 @@ function checkOvertimeAndNotify(hours) {
             // Вместо удаления кнопки обновляем текст в элементе отображения времени
             const timeDisplay = container.querySelector('.time-display');
             if (timeDisplay) {
-              const display = `${selectedHours} ч${min ? ' ' + min + ' мин' : ''}`;
-              timeDisplay.textContent = display;
+              timeDisplay.textContent = formatTimeDisplay(selectedHours, min);
             }
 
             // Сохраняем выбранное время в dataset контейнера
@@ -1680,6 +1641,17 @@ async function submitProjectRequest(managerTelegramId, comment) {
   return `${hours} ч${minutes > 0 ? ' ' + minutes + ' мин' : ''}`;
 }
 
+function isProjectArchived(project) {
+  return project.project_status === 'archive' ||
+         project.project_status === 'presale_archive' ||
+         project.project_status === 'internal_archive' ||
+         project.is_active_plan === false;
+}
+
+function formatTimeDisplay(hours, minutes) {
+  return `${hours} ч${minutes ? ' ' + minutes + ' мин' : ''}`;
+}
+
 function closeProjectModal() {
   document.getElementById('projectInfoModal').style.display = 'none';
 }
@@ -1709,39 +1681,32 @@ function closeProjectModal() {
   });
 }
 
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', e => {
-        // закрываем, только если кликнули именно по фону
-        if (e.target === overlay) {
-          overlay.style.display = 'none';
+        // Общий обработчик закрытия модалок по клику на фон
+    function setupModalCloseHandlers() {
+      const modalHandlers = {
+        'skipReasonModal': () => window.cancelSkipReason?.(),
+        'customDateModal': () => closeCustomDateModal(),
+        'addLeaveTypeModal': () => cancelLeaveTypeSelection(),
+        'timePickerModal': () => {
+          document.getElementById('timePickerContent').innerHTML = '';
+        },
+        // Очистка резолверов для модалок отпуска и больничного
+        'vacationDateModal': () => cancelLeaveDates('vacation'),
+        'sickLeaveDateModal': () => cancelLeaveDates('sick_leave')
+      };
 
-          // пример спец‑очистки для тайм‑пикера
-          if (overlay.id === 'timePickerModal') {
-            document.getElementById('timePickerContent').innerHTML = '';
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', e => {
+          if (e.target === overlay) {
+            overlay.style.display = 'none';
+            const handler = modalHandlers[overlay.id];
+            if (handler) handler();
           }
-        }
+        });
       });
-    });
+    }
 
-    // Закрытие модалки причины пропуска по клику по фону
-    document.getElementById('skipReasonModal').addEventListener('click', e => {
-      if (e.target === e.currentTarget) {
-      e.currentTarget.style.display = 'none';
-      window.cancelSkipReason?.();
-      }
-    });
-
-    document.getElementById('customDateModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) {
-    closeCustomDateModal();
-  }
-});
-
-    document.getElementById('addLeaveTypeModal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) {
-    cancelLeaveTypeSelection();
-  }
-});
+    setupModalCloseHandlers();
 
     // Функции для поиска проектов
     function setupProjectSearch() {
