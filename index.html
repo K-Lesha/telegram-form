@@ -455,6 +455,27 @@ button:hover {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }
+
+    /* Стили для дашборда */
+    .dashboard-day {
+      transition: all 0.2s ease;
+    }
+
+    .dashboard-day.filled:hover {
+      transform: scale(1.05);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    .dashboard-day small {
+      display: block;
+      font-size: 10px;
+      opacity: 0.9;
+    }
+
+    #dashboardContent {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+    }
     
   </style>
 </head>
@@ -577,8 +598,24 @@ button:hover {
     <button class="btn-alt" onclick="cancelLeaveTypeSelection()">✖️ Отменить</button>
   </div>
 </div>
+
+  <!-- Оверлей дашборда -->
+<div id="dashboardOverlay" class="modal-overlay" style="display: none;">
+  <div class="modal-content" style="max-width: 95vw; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;">
+    <div style="margin-bottom: 16px;">
+      <h3 style="margin: 0;">📊 История</h3>
+    </div>
+    <div id="dashboardContent" style="flex: 1; overflow-y: auto; min-height: 0;">
+      <!-- Сюда будет загружаться контент дашборда -->
+    </div>
+    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #eee; text-align: center;">
+      <button class="btn-alt" onclick="closeDashboard()" style="padding: 10px 20px;">✖️ Закрыть</button>
+    </div>
+  </div>
+</div>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="dashboard.js"></script>
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -658,6 +695,12 @@ if (visibleDates.length) {
       addLeaveBtn.textContent = '🏖 Внести отпуск / больничный';
       addLeaveBtn.onclick = () => openAddLeaveFlow();
       result.appendChild(addLeaveBtn);
+
+      const dashboardBtn = document.createElement('button');
+      dashboardBtn.className = 'btn-alt';
+      dashboardBtn.textContent = '📊 История';
+      dashboardBtn.onclick = () => openDashboard();
+      result.appendChild(dashboardBtn);
     }
 
     function promptCustomDate() {
@@ -1672,6 +1715,9 @@ function closeProjectModal() {
   return `${day} ${month} ${year} г. (${weekday})`;
 }
 
+    // Экспортируем функцию для использования в dashboard.js
+    window.formatDate = formatDate;
+
     if (telegram_id !== '—') {
   loadUserData().then(() => {
     const loader = document.getElementById('logoLoader');
@@ -1706,6 +1752,13 @@ function closeProjectModal() {
     }
 
     setupModalCloseHandlers();
+
+    // Закрытие дашборда по клику на фон
+    document.getElementById('dashboardOverlay').addEventListener('click', e => {
+      if (e.target.id === 'dashboardOverlay') {
+        closeDashboard();
+      }
+    });
 
     // Функции для поиска проектов
     function setupProjectSearch() {

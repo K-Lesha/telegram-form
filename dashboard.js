@@ -1,0 +1,648 @@
+// Dashboard для просмотра истории времени
+// Использует telegram_id из глобальной области видимости index.html
+
+const API_BASE = 'https://betters-technology.site/webhook';
+
+// Текущий отображаемый месяц (для навигации)
+let currentDashboardMonth = new Date();
+currentDashboardMonth.setDate(1); // Первое число месяца
+
+// Открытие дашборда
+async function openDashboard() {
+  const overlay = document.getElementById('dashboardOverlay');
+  const content = document.getElementById('dashboardContent');
+  
+  overlay.style.display = 'flex';
+  
+  // Сбрасываем на текущий месяц
+  currentDashboardMonth = new Date();
+  currentDashboardMonth.setDate(1);
+  
+  content.innerHTML = '<p class="loading-text">Загрузка...</p>';
+  
+  try {
+    await renderCalendar();
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки: ${error.message}</p>`;
+  }
+}
+
+// Закрытие дашборда
+function closeDashboard() {
+  document.getElementById('dashboardOverlay').style.display = 'none';
+}
+
+// Экспортируем функции для использования в HTML
+window.openDashboard = openDashboard;
+window.closeDashboard = closeDashboard;
+window.renderCalendar = renderCalendar;
+
+// Рендеринг календаря
+async function renderCalendar() {
+  const content = document.getElementById('dashboardContent');
+  
+  // Используем сохраненный месяц
+  const year = currentDashboardMonth.getFullYear();
+  const month = currentDashboardMonth.getMonth();
+  
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0);
+  
+  const startStr = formatDateForAPI(startDate);
+  const endStr = formatDateForAPI(endDate);
+  
+  try {
+    const response = await fetch(`${API_BASE}/get-time-entries-calendar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: parseInt(telegram_id),
+        start_date: startStr,
+        end_date: endStr
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (!data.calendar || !data.month_summary) {
+      content.innerHTML = '<p>❌ Ошибка: неверный формат данных</p>';
+      return;
+    }
+    
+    // Рендерим календарь с навигацией
+    let html = buildCalendarHTML(data.calendar, data.month_summary, year, month);
+    
+    // Загружаем общую сводку по проектам (за все время)
+    try {
+      const projectsSummary = await loadProjectsSummary();
+      if (projectsSummary && projectsSummary.length > 0) {
+        html += buildProjectsSummaryHTML(projectsSummary);
+      }
+    } catch (error) {
+      // Если не удалось загрузить статистику - просто не показываем сводку
+      console.error('Ошибка загрузки сводки по проектам:', error);
+    }
+    
+    content.innerHTML = html;
+    
+    // Настраиваем обработчики кликов на дни
+    setupDayClickHandlers();
+    
+    // Настраиваем обработчики кликов на проекты
+    setupProjectClickHandlers();
+    
+    // Настраиваем кнопки навигации
+    setupMonthNavigation();
+    
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки календаря: ${error.message}</p>`;
+  }
+}
+
+// Построение HTML календаря
+function buildCalendarHTML(calendar, monthSummary, year, month) {
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const summary = monthSummary[monthKey] || {
+    total_hours: 0,
+    filled_days: 0,
+    unfilled_days: 0,
+    vacation_days: 0,
+    sick_leave_days: 0,
+    work_days: 0
+  };
+  
+  let html = `
+    <div style="margin-bottom: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 8px;">
+        <button class="btn-alt" onclick="navigateMonth(-1)" style="padding: 6px 8px; font-size: 18px; width: 40px; flex-shrink: 0;">←</button>
+        <h4 style="margin: 0; flex: 1; text-align: center;">${formatMonthYear(year, month + 1)}</h4>
+        <button class="btn-alt" onclick="navigateMonth(1)" style="padding: 6px 8px; font-size: 18px; width: 40px; flex-shrink: 0;">→</button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-bottom: 12px;">
+  `;
+    
+    // Заголовки дней недели
+    const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+    weekDays.forEach(day => {
+      html += `<div style="padding: 8px; text-align: center; font-weight: bold; font-size: 12px; color: #666;">${day}</div>`;
+    });
+    
+    // Получаем все дни месяца
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    // getDay() возвращает 0 (воскресенье) - 6 (суббота), нам нужно понедельник = 0
+    const firstDayOfWeekRaw = new Date(year, month, 1).getDay();
+    const firstDayOfWeek = firstDayOfWeekRaw === 0 ? 6 : firstDayOfWeekRaw - 1; // Понедельник = 0
+    
+    // Пустые клетки до первого дня
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      html += '<div style="padding: 8px;"></div>';
+    }
+    
+    // Дни месяца
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const dayData = calendar[dateStr];
+      
+      let dayClass = 'dashboard-day';
+      let dayContent = day;
+      let dayTitle = '';
+      
+      if (dayData) {
+        if (dayData.filled) {
+          dayClass += ' filled';
+          dayContent = `${day}<br><small>${dayData.total_hours.toFixed(1)}ч</small>`;
+          dayTitle = `Заполнено: ${dayData.total_hours.toFixed(1)}ч, ${dayData.projects_count} проектов`;
+        } else if (dayData.not_filled_reason) {
+          dayClass += ' ' + dayData.not_filled_reason;
+          dayContent = day;
+          const reason = dayData.not_filled_reason === 'vacation' ? 'Отпуск' : 'Больничный';
+          dayTitle = reason;
+        } else {
+          dayClass += ' unfilled';
+          dayContent = day;
+          dayTitle = 'Не заполнено';
+        }
+      } else {
+        dayClass += ' empty';
+        dayContent = day;
+        dayTitle = 'Нет данных';
+      }
+      
+      html += `
+        <div class="${dayClass}" data-date="${dateStr}" title="${dayTitle}" style="
+          padding: 8px;
+          text-align: center;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          cursor: ${dayData?.filled ? 'pointer' : 'default'};
+          background: ${getDayBackgroundColor(dayData)};
+          color: ${getDayTextColor(dayData)};
+        ">
+          ${dayContent}
+        </div>
+      `;
+    }
+    
+    html += `
+        </div>
+        <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+          <p style="margin: 4px 0;"><strong>Всего часов:</strong> ${summary.total_hours.toFixed(1)}</p>
+          <p style="margin: 4px 0;"><strong>Заполнено дней:</strong> ${summary.filled_days}</p>
+          <p style="margin: 4px 0;"><strong>Незаполнено дней:</strong> ${summary.unfilled_days}</p>
+          ${summary.vacation_days > 0 ? `<p style="margin: 4px 0;"><strong>Отпуск:</strong> ${summary.vacation_days} дней</p>` : ''}
+          ${summary.sick_leave_days > 0 ? `<p style="margin: 4px 0;"><strong>Больничный:</strong> ${summary.sick_leave_days} дней</p>` : ''}
+        </div>
+      </div>
+    `;
+  
+  return html;
+}
+
+// Навигация по месяцам
+async function navigateMonth(direction) {
+  // Изменяем месяц
+  currentDashboardMonth.setMonth(currentDashboardMonth.getMonth() + direction);
+  
+  // Перерисовываем календарь
+  await renderCalendar();
+}
+
+// Экспортируем функцию для использования в onclick
+window.navigateMonth = navigateMonth;
+
+// Загрузка общей сводки по проектам (за все время)
+async function loadProjectsSummary() {
+  try {
+    // Получаем список проектов из активных проектов пользователя (если доступен)
+    // или собираем из нескольких дней календаря
+    let projectIds = new Set();
+    
+    // Создаем маппинг project_id -> project_name из activeProjects
+    const projectNamesMap = new Map();
+    
+    // Пробуем использовать активные проекты из глобальной области
+    if (typeof activeProjects !== 'undefined' && Array.isArray(activeProjects) && activeProjects.length > 0) {
+      activeProjects.forEach(project => {
+        if (project.project_id) {
+          projectIds.add(project.project_id);
+          // Сохраняем название проекта для использования позже
+          if (project.project_name) {
+            projectNamesMap.set(project.project_id, project.project_name);
+          } else if (project.name) {
+            projectNamesMap.set(project.project_id, project.name);
+          }
+        }
+      });
+    }
+    
+    // Если не нашли проекты, собираем из месяцев статистики за последний год
+    if (projectIds.size === 0) {
+      const now = new Date();
+      
+      // Запрашиваем статистику за последние 12 месяцев
+      const monthPromises = [];
+      for (let i = 0; i < 12; i++) {
+        const checkDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthPromises.push(
+          fetch(`${API_BASE}/get-month-statistics`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              telegram_id: parseInt(telegram_id),
+              year: checkDate.getFullYear(),
+              month: checkDate.getMonth() + 1
+            })
+          }).then(res => res.json()).catch(() => null)
+        );
+      }
+      
+      const monthsData = await Promise.all(monthPromises);
+      
+      monthsData.forEach(monthData => {
+        if (monthData && monthData.projects && Array.isArray(monthData.projects)) {
+          monthData.projects.forEach(project => {
+            if (project.project_id) {
+              projectIds.add(project.project_id);
+              // Сохраняем название проекта, если есть
+              if (project.project_name) {
+                projectNamesMap.set(project.project_id, project.project_name);
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    if (projectIds.size === 0) {
+      return [];
+    }
+    
+    // Запрашиваем timeline для каждого проекта параллельно (без фильтра по датам)
+    const projectPromises = Array.from(projectIds).map(projectId => 
+      fetch(`${API_BASE}/get-project-timeline`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          telegram_id: parseInt(telegram_id),
+          project_id: projectId
+          // Не передаем start_date и end_date - получаем все данные
+        })
+      }).then(res => res.json()).then(data => {
+        // Проверяем, что данные валидны
+        if (!data || !data.project_id) {
+          return null;
+        }
+        
+        // Если нет project_name в ответе, используем из маппинга
+        if (!data.project_name && projectNamesMap.has(projectId)) {
+          data.project_name = projectNamesMap.get(projectId);
+        }
+        
+        // Если всё ещё нет project_name, пропускаем проект
+        if (!data.project_name) {
+          return null;
+        }
+        
+        return data;
+      }).catch(() => {
+        return null;
+      })
+    );
+    
+    const projectsData = await Promise.all(projectPromises);
+    
+    // Агрегируем данные: суммируем часы и дни из всех месяцев
+    const summary = projectsData
+      .filter(project => {
+        // Фильтруем только валидные проекты с project_id и project_name
+        return project !== null && 
+               project.project_id && 
+               project.project_name && 
+               typeof project.project_name === 'string';
+      })
+      .map(project => {
+        const totalHours = project.total_hours || 0;
+        const totalDays = project.total_days || 0;
+        const averagePerDay = totalDays > 0 ? totalHours / totalDays : 0;
+        
+        return {
+          project_id: project.project_id,
+          project_name: project.project_name,
+          total_hours: totalHours,
+          days_count: totalDays,
+          average_per_day: averagePerDay,
+          contracted_hours: project.contracted_hours || null,
+          internal_hours: project.internal_hours || null
+        };
+      });
+    
+    // Сортируем по названию проекта (только если есть валидные проекты)
+    if (summary.length > 0) {
+      summary.sort((a, b) => {
+        const nameA = a.project_name || '';
+        const nameB = b.project_name || '';
+        return nameA.localeCompare(nameB);
+      });
+    }
+    
+    return summary;
+    
+  } catch (error) {
+    console.error('Ошибка загрузки сводки по проектам:', error);
+    return [];
+  }
+}
+
+// Построение HTML сводки по проектам
+function buildProjectsSummaryHTML(projects) {
+  let html = `
+    <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee;">
+      <h4 style="margin-bottom: 12px;">📊 Сводка по проектам</h4>
+  `;
+  
+  projects.forEach(project => {
+    const hasPlan = project.contracted_hours !== null && project.contracted_hours !== undefined;
+    const planHours = project.contracted_hours || 0;
+    const factHours = project.total_hours || 0;
+    const percentage = hasPlan && planHours > 0 ? Math.round((factHours / planHours) * 100) : null;
+    
+    html += `
+      <div style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;" 
+           onclick="renderProjectTimeline(${project.project_id})" 
+           onmouseover="this.style.background='#f9f9f9'" 
+           onmouseout="this.style.background='#fff'">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 4px;">
+          <p style="margin: 0; font-weight: 600;">${project.project_name}</p>
+          ${percentage !== null ? `<span style="font-size: 12px; color: ${percentage >= 100 ? '#e74c3c' : percentage >= 80 ? '#f39c12' : '#27ae60'};">
+            ${percentage}%
+          </span>` : ''}
+        </div>
+        <p style="margin: 4px 0; color: #666; font-size: 14px;">
+          Факт: <strong>${factHours.toFixed(1)} ч</strong>
+          ${hasPlan ? ` / План: <strong>${planHours} ч</strong>` : ''}
+        </p>
+        ${hasPlan ? `
+          <div style="margin-top: 8px; height: 4px; background: #ecf0f1; border-radius: 2px; overflow: hidden;">
+            <div style="height: 100%; background: ${percentage >= 100 ? '#e74c3c' : percentage >= 80 ? '#f39c12' : '#27ae60'}; width: ${Math.min(percentage, 100)}%; transition: width 0.3s ease;"></div>
+          </div>
+        ` : ''}
+        <p style="margin: 4px 0 0 0; color: #999; font-size: 12px;">
+          ${project.days_count} дней · среднее: ${project.average_per_day.toFixed(1)} ч/день
+        </p>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
+}
+
+// Настройка обработчиков кликов на проекты
+function setupProjectClickHandlers() {
+  // Обработчики уже установлены через onclick в HTML
+}
+
+// Настройка обработчиков навигации (для будущего использования)
+function setupMonthNavigation() {
+  // Обработчики уже установлены через onclick в HTML
+}
+
+// Получение цвета фона для дня
+function getDayBackgroundColor(dayData) {
+  if (!dayData) return '#f9f9f9';
+  if (dayData.filled) return '#27ae60';
+  if (dayData.not_filled_reason === 'vacation') return '#f39c12';
+  if (dayData.not_filled_reason === 'sick_leave') return '#e74c3c';
+  return '#ecf0f1';
+}
+
+// Получение цвета текста для дня
+function getDayTextColor(dayData) {
+  if (!dayData) return '#999';
+  if (dayData.filled) return '#fff';
+  if (dayData.not_filled_reason) return '#fff';
+  return '#333';
+}
+
+// Настройка обработчиков кликов на дни
+function setupDayClickHandlers() {
+  document.querySelectorAll('.dashboard-day.filled').forEach(dayEl => {
+    dayEl.addEventListener('click', async () => {
+      const date = dayEl.dataset.date;
+      await renderDayDetails(date);
+    });
+  });
+}
+
+// Рендеринг деталей дня
+async function renderDayDetails(date) {
+  const content = document.getElementById('dashboardContent');
+  
+  content.innerHTML = '<p class="loading-text">Загрузка деталей...</p>';
+  
+  try {
+    const response = await fetch(`${API_BASE}/get-day-details`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: parseInt(telegram_id),
+        date: date
+      })
+    });
+    
+    const data = await response.json();
+    
+    let html = `
+      <div style="margin-bottom: 16px;">
+        <button class="btn-alt" onclick="renderCalendar()" style="margin-bottom: 12px;">← Назад к календарю</button>
+        <h4>Детали за ${formatDate(date)}</h4>
+    `;
+    
+    if (data.filled) {
+      html += `
+        <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+          <p><strong>Всего часов:</strong> ${data.total_hours.toFixed(1)} (${Math.floor(data.total_minutes / 60)} ч ${data.total_minutes % 60} мин)</p>
+        </div>
+        <div>
+          <h5>Записи по проектам:</h5>
+      `;
+      
+      if (data.hours && data.hours.length > 0) {
+        data.hours.forEach(entry => {
+          html += `
+            <div style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px;">
+              <p style="margin: 4px 0;"><strong>${entry.project_name}</strong></p>
+              <p style="margin: 4px 0; color: #666;">${entry.hours} ч ${entry.minutes} мин (${entry.value.toFixed(2)} ч)</p>
+            </div>
+          `;
+        });
+      } else {
+        html += '<p>Нет записей</p>';
+      }
+      
+      html += '</div>';
+    } else {
+      const reason = data.not_filled_reason === 'vacation' ? 'Отпуск' : 
+                     data.not_filled_reason === 'sick_leave' ? 'Больничный' : 
+                     'Не заполнено';
+      html += `
+        <div style="padding: 12px; background: #ecf0f1; border-radius: 8px;">
+          <p><strong>Статус:</strong> ${reason}</p>
+        </div>
+      `;
+    }
+    
+    html += '</div>';
+    content.innerHTML = html;
+    
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки деталей: ${error.message}</p>`;
+  }
+}
+
+// Рендеринг статистики за месяц
+async function renderMonthStatistics(year, month) {
+  const content = document.getElementById('dashboardContent');
+  
+  content.innerHTML = '<p class="loading-text">Загрузка статистики...</p>';
+  
+  try {
+    const response = await fetch(`${API_BASE}/get-month-statistics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: parseInt(telegram_id),
+        year: year,
+        month: month
+      })
+    });
+    
+    const data = await response.json();
+    
+    let html = `
+      <div style="margin-bottom: 16px;">
+        <button class="btn-alt" onclick="renderCalendar()" style="margin-bottom: 12px;">← Назад к календарю</button>
+        <h4>Статистика за ${formatMonthYear(year, month)}</h4>
+        <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+          <p><strong>Всего часов:</strong> ${data.total_hours.toFixed(1)}</p>
+          <p><strong>Заполнено дней:</strong> ${data.filled_days}</p>
+        </div>
+        <div>
+          <h5>По проектам:</h5>
+    `;
+    
+    if (data.projects && data.projects.length > 0) {
+      data.projects.forEach(project => {
+        html += `
+          <div style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;" 
+               onclick="renderProjectTimeline(${project.project_id})">
+            <p style="margin: 4px 0;"><strong>${project.project_name}</strong></p>
+            <p style="margin: 4px 0; color: #666;">
+              ${project.total_hours.toFixed(1)} ч за ${project.days_count} дней 
+              (среднее: ${project.average_per_day.toFixed(1)} ч/день)
+            </p>
+            ${project.contracted_hours !== null ? `<p style="margin: 4px 0; color: #666; font-size: 12px;">План: ${project.contracted_hours} ч</p>` : ''}
+          </div>
+        `;
+      });
+    } else {
+      html += '<p>Нет проектов</p>';
+    }
+    
+    html += '</div></div>';
+    content.innerHTML = html;
+    
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки статистики: ${error.message}</p>`;
+  }
+}
+
+// Рендеринг таймлайна проекта
+async function renderProjectTimeline(projectId) {
+  const content = document.getElementById('dashboardContent');
+  
+  content.innerHTML = '<p class="loading-text">Загрузка таймлайна...</p>';
+  
+  try {
+    const response = await fetch(`${API_BASE}/get-project-timeline`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: parseInt(telegram_id),
+        project_id: projectId
+      })
+    });
+    
+    const data = await response.json();
+    
+    let html = `
+      <div style="margin-bottom: 16px;">
+        <button class="btn-alt" onclick="renderCalendar()" style="margin-bottom: 12px;">← Назад к календарю</button>
+        <h4>${data.project_name}</h4>
+        <div style="margin-bottom: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
+          <p><strong>Всего часов:</strong> ${data.total_hours.toFixed(1)}</p>
+          <p><strong>Всего дней:</strong> ${data.total_days}</p>
+          ${data.contracted_hours !== null ? `<p><strong>Контрактные часы:</strong> ${data.contracted_hours}</p>` : ''}
+          ${data.internal_hours !== null ? `<p><strong>Внутренние часы:</strong> ${data.internal_hours}</p>` : ''}
+        </div>
+        <div>
+          <h5>По месяцам:</h5>
+    `;
+    
+    if (data.timeline && data.timeline.length > 0) {
+      data.timeline.forEach(month => {
+        html += `
+          <div style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 8px;">
+            <p style="margin: 4px 0;"><strong>${formatMonthYear(month.year, month.month)}</strong></p>
+            <p style="margin: 4px 0; color: #666;">
+              ${month.total_hours.toFixed(1)} ч за ${month.days_count} дней 
+              (среднее: ${month.average_per_day.toFixed(1)} ч/день)
+            </p>
+          </div>
+        `;
+      });
+    } else {
+      html += '<p>Нет данных</p>';
+    }
+    
+    html += '</div></div>';
+    content.innerHTML = html;
+    
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки таймлайна: ${error.message}</p>`;
+  }
+}
+
+// Форматирование даты для API (YYYY-MM-DD)
+function formatDateForAPI(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Форматирование месяца и года
+function formatMonthYear(year, month) {
+  const months = [
+    'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+    'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+  ];
+  return `${months[month - 1]} ${year}`;
+}
+
+// Форматирование даты (использует функцию из index.html)
+function formatDate(dateString) {
+  if (typeof window.formatDate === 'function') {
+    return window.formatDate(dateString);
+  }
+  // Fallback форматирование
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = date.getMonth() + 1;
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+// Экспортируем функции для использования в HTML
+window.renderProjectTimeline = renderProjectTimeline;
+
