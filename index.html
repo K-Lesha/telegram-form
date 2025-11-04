@@ -583,17 +583,16 @@ button:hover {
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    let telegram_id = '217500012'; // Временно для тестов
+    let telegram_id = '—';
     let activeProjects = [];
     let selectedDay = null;
     let managersCache = []; // [{ id: 295619064, name: "..." }, ...]
 
-    // Временно закомментировано для тестов
-    // try {
-    //   telegram_id = tg?.initDataUnsafe?.user?.id || '—';
-    // } catch (err) {
-    //   console.warn('Telegram ID недоступен', err);
-    // }
+    try {
+      telegram_id = tg?.initDataUnsafe?.user?.id || '—';
+    } catch (err) {
+      console.warn('Telegram ID недоступен', err);
+    }
 
     function showSkeleton() {
       const result = document.getElementById('result');
