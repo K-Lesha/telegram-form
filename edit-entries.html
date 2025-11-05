@@ -278,7 +278,7 @@
     function confirmMakeWorkingDay(date, reason) {
 
        if (isMonthLocked(date)) {
-    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 11-го числа следующего месяца).');
     return;
   }
       
@@ -318,10 +318,10 @@ function isMonthLocked(dateStr, now = new Date()) {
 
   // следующий месяц после month(entryLocal)
   const nextMonth = new Date(entryLocal.getFullYear(), entryLocal.getMonth() + 1, 1);
-  // локальная полночь 6-го числа следующего месяца
-  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 6);
+  // локальная полночь 11-го числа следующего месяца
+  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 11);
 
-  return now >= lockAt; // если сейчас 6-е (00:00) или позже — месяц залочен
+  return now >= lockAt; // если сейчас 11-е (00:00) или позже — месяц залочен
 }
     
       function enableEditMode(group) {
@@ -362,7 +362,7 @@ async function saveUpdatedEntries(date, updatedEntries, saveBtn) {
   saveBtn.disabled = true;
 
     if (isMonthLocked(date)) {
-    alert('❌ Этот месяц закрыт для изменений (после 6-го числа следующего месяца).');
+    alert('❌ Этот месяц закрыт для изменений (после 11-го числа следующего месяца).');
     saveBtn.disabled = false;
     return;
   }
