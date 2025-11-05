@@ -7,6 +7,101 @@ const API_BASE = 'https://betters-technology.site/webhook';
 let currentDashboardMonth = new Date();
 currentDashboardMonth.setDate(1); // Первое число месяца
 
+// Кэш данных календаря: ключ - "YYYY-MM", значение - { calendar, month_summary }
+const calendarCache = {};
+
+// Кэш деталей дня: ключ - "YYYY-MM-DD", значение - данные дня
+const dayDetailsCache = {};
+
+// Кэш сводки по проектам (загружается один раз)
+let projectsSummaryCache = null;
+let projectsSummaryLoading = false;
+
+// Получение ключа месяца для кэша
+function getMonthKey(year, month) {
+  return `${year}-${String(month + 1).padStart(2, '0')}`;
+}
+
+// Загрузка данных месяца с API
+async function loadMonthData(year, month) {
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0);
+  
+  const startStr = formatDateForAPI(startDate);
+  const endStr = formatDateForAPI(endDate);
+  
+  const response = await fetch(`${API_BASE}/get-time-entries-calendar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      telegram_id: parseInt(telegram_id),
+      start_date: startStr,
+      end_date: endStr
+    })
+  });
+  
+  const data = await response.json();
+  
+  if (!data.calendar || !data.month_summary) {
+    throw new Error('Неверный формат данных');
+  }
+  
+  return data;
+}
+
+// Предзагрузка данных за несколько месяцев вокруг центрального
+async function preloadMonths(centerYear, centerMonth, monthsBack = 3, monthsForward = 1) {
+  const monthsToLoad = [];
+  
+  // Загружаем месяцы назад
+  for (let i = monthsBack; i >= 1; i--) {
+    const month = new Date(centerYear, centerMonth - i, 1);
+    monthsToLoad.push({
+      year: month.getFullYear(),
+      month: month.getMonth(),
+      key: getMonthKey(month.getFullYear(), month.getMonth())
+    });
+  }
+  
+  // Текущий месяц
+  monthsToLoad.push({
+    year: centerYear,
+    month: centerMonth,
+    key: getMonthKey(centerYear, centerMonth)
+  });
+  
+  // Загружаем месяцы вперед
+  for (let i = 1; i <= monthsForward; i++) {
+    const month = new Date(centerYear, centerMonth + i, 1);
+    monthsToLoad.push({
+      year: month.getFullYear(),
+      month: month.getMonth(),
+      key: getMonthKey(month.getFullYear(), month.getMonth())
+    });
+  }
+  
+  // Загружаем только те месяцы, которых нет в кэше
+  const monthsToFetch = monthsToLoad.filter(m => !calendarCache[m.key]);
+  
+  if (monthsToFetch.length === 0) {
+    return; // Все уже в кэше
+  }
+  
+  // Загружаем все недостающие месяцы параллельно
+  const loadPromises = monthsToFetch.map(({ year, month, key }) =>
+    loadMonthData(year, month)
+      .then(data => {
+        calendarCache[key] = data;
+      })
+      .catch(error => {
+        console.error(`Ошибка загрузки месяца ${key}:`, error);
+        // Не прерываем загрузку других месяцев
+      })
+  );
+  
+  await Promise.all(loadPromises);
+}
+
 // Открытие дашборда
 async function openDashboard() {
   const overlay = document.getElementById('dashboardOverlay');
@@ -18,9 +113,16 @@ async function openDashboard() {
   currentDashboardMonth = new Date();
   currentDashboardMonth.setDate(1);
   
+  const year = currentDashboardMonth.getFullYear();
+  const month = currentDashboardMonth.getMonth();
+  
   content.innerHTML = '<p class="loading-text">Загрузка...</p>';
   
   try {
+    // Предзагружаем 6 месяцев назад и 1 вперед (для быстрой навигации)
+    await preloadMonths(year, month, 6, 1);
+    
+    // Рендерим календарь из кэша
     await renderCalendar();
   } catch (error) {
     content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки: ${error.message}</p>`;
@@ -44,45 +146,26 @@ async function renderCalendar() {
   // Используем сохраненный месяц
   const year = currentDashboardMonth.getFullYear();
   const month = currentDashboardMonth.getMonth();
-  
-  const startDate = new Date(year, month, 1);
-  const endDate = new Date(year, month + 1, 0);
-  
-  const startStr = formatDateForAPI(startDate);
-  const endStr = formatDateForAPI(endDate);
+  const monthKey = getMonthKey(year, month);
   
   try {
-    const response = await fetch(`${API_BASE}/get-time-entries-calendar`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        telegram_id: parseInt(telegram_id),
-        start_date: startStr,
-        end_date: endStr
-      })
-    });
+    // Проверяем кэш
+    let data = calendarCache[monthKey];
     
-    const data = await response.json();
+    // Если данных нет в кэше, показываем загрузку и загружаем
+    if (!data) {
+      content.innerHTML = '<p class="loading-text">Загрузка...</p>';
+      data = await loadMonthData(year, month);
+      calendarCache[monthKey] = data;
+    }
     
     if (!data.calendar || !data.month_summary) {
       content.innerHTML = '<p>❌ Ошибка: неверный формат данных</p>';
       return;
     }
     
-    // Рендерим календарь с навигацией
+    // Сразу рендерим календарь (не ждем сводку по проектам)
     let html = buildCalendarHTML(data.calendar, data.month_summary, year, month);
-    
-    // Загружаем общую сводку по проектам (за все время)
-    try {
-      const projectsSummary = await loadProjectsSummary();
-      if (projectsSummary && projectsSummary.length > 0) {
-        html += buildProjectsSummaryHTML(projectsSummary);
-      }
-    } catch (error) {
-      // Если не удалось загрузить статистику - просто не показываем сводку
-      console.error('Ошибка загрузки сводки по проектам:', error);
-    }
-    
     content.innerHTML = html;
     
     // Настраиваем обработчики кликов на дни
@@ -94,9 +177,87 @@ async function renderCalendar() {
     // Настраиваем кнопки навигации
     setupMonthNavigation();
     
+    // Добавляем индикатор загрузки сводки по проектам (если её еще нет в кэше)
+    if (projectsSummaryCache === null) {
+      content.insertAdjacentHTML('beforeend', `
+        <div class="projects-summary-loading" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee; text-align: center; color: #666;">
+          <p style="margin: 0;">📊 Загрузка сводки по проектам...</p>
+        </div>
+      `);
+    }
+    
+    // Асинхронно загружаем сводку по проектам (если её еще нет в кэше)
+    loadProjectsSummaryAsync(content);
+    
   } catch (error) {
     content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки календаря: ${error.message}</p>`;
   }
+}
+
+// Асинхронная загрузка сводки по проектам (не блокирует отображение календаря)
+async function loadProjectsSummaryAsync(contentContainer) {
+  // Если уже загружается - не запускаем повторно
+  if (projectsSummaryLoading) {
+    return;
+  }
+  
+  // Если уже есть в кэше - добавляем сразу
+  if (projectsSummaryCache !== null) {
+    appendProjectsSummary(contentContainer, projectsSummaryCache);
+    return;
+  }
+  
+  // Загружаем сводку
+  projectsSummaryLoading = true;
+  
+  try {
+    const projectsSummary = await loadProjectsSummary();
+    projectsSummaryCache = projectsSummary;
+    
+    if (projectsSummary && projectsSummary.length > 0) {
+      appendProjectsSummary(contentContainer, projectsSummary);
+    } else {
+      // Убираем индикатор загрузки, если сводка пустая
+      const loadingIndicator = contentContainer.querySelector('.projects-summary-loading');
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки сводки по проектам:', error);
+    // Убираем индикатор загрузки при ошибке
+    const loadingIndicator = contentContainer.querySelector('.projects-summary-loading');
+    if (loadingIndicator) {
+      loadingIndicator.remove();
+    }
+  } finally {
+    projectsSummaryLoading = false;
+  }
+}
+
+// Добавление сводки по проектам в контейнер
+function appendProjectsSummary(contentContainer, projectsSummary) {
+  // Проверяем, что контейнер все еще существует и мы все еще на календаре
+  if (!contentContainer || !contentContainer.querySelector('.dashboard-day')) {
+    return; // Уже не на календаре
+  }
+  
+  // Проверяем, не добавлена ли уже сводка
+  if (contentContainer.querySelector('.projects-summary-container')) {
+    return; // Уже добавлена
+  }
+  
+  // Убираем индикатор загрузки, если он есть
+  const loadingIndicator = contentContainer.querySelector('.projects-summary-loading');
+  if (loadingIndicator) {
+    loadingIndicator.remove();
+  }
+  
+  const summaryHTML = buildProjectsSummaryHTML(projectsSummary);
+  contentContainer.insertAdjacentHTML('beforeend', summaryHTML);
+  
+  // Настраиваем обработчики кликов на проекты (после добавления)
+  setupProjectClickHandlers();
 }
 
 // Построение HTML календаря
@@ -203,7 +364,26 @@ async function navigateMonth(direction) {
   // Изменяем месяц
   currentDashboardMonth.setMonth(currentDashboardMonth.getMonth() + direction);
   
-  // Перерисовываем календарь
+  const newYear = currentDashboardMonth.getFullYear();
+  const newMonth = currentDashboardMonth.getMonth();
+  const newMonthKey = getMonthKey(newYear, newMonth);
+  
+  // Если данных нет в кэше, загружаем в фоне (не ждем)
+  if (!calendarCache[newMonthKey]) {
+    // Показываем календарь сразу (может быть с данными из предыдущего месяца или пустой)
+    // и загружаем данные в фоне
+    preloadMonths(newYear, newMonth, 3, 1).then(() => {
+      // После загрузки перерисовываем календарь
+      renderCalendar();
+    });
+    
+    // Показываем календарь с загрузкой (если данных нет)
+    const content = document.getElementById('dashboardContent');
+    content.innerHTML = '<p class="loading-text">Загрузка...</p>';
+    return;
+  }
+  
+  // Перерисовываем календарь (данные уже в кэше - мгновенно)
   await renderCalendar();
 }
 
@@ -356,7 +536,7 @@ async function loadProjectsSummary() {
 // Построение HTML сводки по проектам
 function buildProjectsSummaryHTML(projects) {
   let html = `
-    <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee;">
+    <div class="projects-summary-container" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee;">
       <h4 style="margin-bottom: 12px;">📊 Сводка по проектам</h4>
   `;
   
@@ -438,6 +618,16 @@ function setupDayClickHandlers() {
 async function renderDayDetails(date) {
   const content = document.getElementById('dashboardContent');
   
+  // Проверяем кэш
+  let data = dayDetailsCache[date];
+  
+  if (data) {
+    // Если данные есть в кэше, показываем сразу
+    renderDayDetailsHTML(content, data, date);
+    return;
+  }
+  
+  // Если данных нет в кэше, показываем загрузку и загружаем
   content.innerHTML = '<p class="loading-text">Загрузка деталей...</p>';
   
   try {
@@ -450,7 +640,20 @@ async function renderDayDetails(date) {
       })
     });
     
-    const data = await response.json();
+    data = await response.json();
+    // Сохраняем в кэш
+    dayDetailsCache[date] = data;
+    
+    // Показываем данные
+    renderDayDetailsHTML(content, data, date);
+  } catch (error) {
+    content.innerHTML = `<p style="color: #e74c3c;">❌ Ошибка загрузки деталей: ${error.message}</p>`;
+  }
+}
+
+// Рендеринг HTML деталей дня (вынесено в отдельную функцию)
+function renderDayDetailsHTML(content, data, date) {
+  try {
     
     let html = `
       <div style="margin-bottom: 16px;">
