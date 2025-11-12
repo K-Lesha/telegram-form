@@ -17,6 +17,9 @@ const dayDetailsCache = {};
 let projectsSummaryCache = null;
 let projectsSummaryLoading = false;
 
+// Кэш сводки по проектам за месяц: ключ - "YYYY-MM", значение - массив проектов
+const monthProjectsSummaryCache = {};
+
 // Получение ключа месяца для кэша
 function getMonthKey(year, month) {
   return `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -177,7 +180,10 @@ async function renderCalendar() {
     // Настраиваем кнопки навигации
     setupMonthNavigation();
     
-    // Добавляем индикатор загрузки сводки по проектам (если её еще нет в кэше)
+    // Асинхронно загружаем сводку по проектам за текущий месяц
+    loadMonthProjectsSummaryAsync(content, year, month);
+    
+    // Добавляем индикатор загрузки общей сводки по проектам (если её еще нет в кэше)
     if (projectsSummaryCache === null) {
       content.insertAdjacentHTML('beforeend', `
         <div class="projects-summary-loading" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee; text-align: center; color: #666;">
@@ -186,7 +192,7 @@ async function renderCalendar() {
       `);
     }
     
-    // Асинхронно загружаем сводку по проектам (если её еще нет в кэше)
+    // Асинхронно загружаем общую сводку по проектам (если её еще нет в кэше)
     loadProjectsSummaryAsync(content);
     
   } catch (error) {
@@ -258,6 +264,128 @@ function appendProjectsSummary(contentContainer, projectsSummary) {
   
   // Настраиваем обработчики кликов на проекты (после добавления)
   setupProjectClickHandlers();
+}
+
+// Загрузка сводки по проектам за конкретный месяц
+async function loadMonthProjectsSummary(year, month) {
+  const monthKey = getMonthKey(year, month);
+  
+  // Проверяем кэш
+  if (monthProjectsSummaryCache[monthKey]) {
+    return monthProjectsSummaryCache[monthKey];
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE}/get-month-statistics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        telegram_id: parseInt(telegram_id),
+        year: year,
+        month: month + 1 // API ожидает месяц от 1 до 12
+      })
+    });
+    
+    const data = await response.json();
+    
+    // Извлекаем массив проектов
+    const projects = data.projects || [];
+    
+    // Сохраняем в кэш
+    monthProjectsSummaryCache[monthKey] = projects;
+    
+    return projects;
+  } catch (error) {
+    console.error('Ошибка загрузки сводки по проектам за месяц:', error);
+    return [];
+  }
+}
+
+// Построение HTML сводки по проектам за месяц
+function buildMonthProjectsSummaryHTML(projects) {
+  if (!projects || projects.length === 0) {
+    return `
+      <div class="month-projects-summary-container" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee;">
+        <h4 style="margin-bottom: 12px;">📊 Сводка за месяц</h4>
+        <p style="color: #666;">Нет данных по проектам за этот месяц</p>
+      </div>
+    `;
+  }
+  
+  // Считаем общее количество часов
+  const totalHours = projects.reduce((sum, project) => sum + (project.total_hours || 0), 0);
+  
+  let html = `
+    <div class="month-projects-summary-container" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee;">
+      <h4 style="margin-bottom: 12px;">📊 Сводка за месяц</h4>
+      <p style="margin-bottom: 12px; color: #666; font-size: 14px;"><strong>Всего часов:</strong> ${totalHours.toFixed(1)}</p>
+  `;
+  
+  projects.forEach(project => {
+    html += `
+      <div style="padding: 8px; margin-bottom: 6px; border: 1px solid #ddd; border-radius: 6px;">
+        <p style="margin: 0; font-weight: 500;">${project.project_name}</p>
+        <p style="margin: 4px 0 0 0; color: #666; font-size: 14px;">${(project.total_hours || 0).toFixed(1)} ч</p>
+      </div>
+    `;
+  });
+  
+  html += '</div>';
+  return html;
+}
+
+// Асинхронная загрузка сводки по проектам за месяц
+async function loadMonthProjectsSummaryAsync(contentContainer, year, month) {
+  const monthKey = getMonthKey(year, month);
+  
+  // Проверяем, не добавлена ли уже сводка
+  if (contentContainer.querySelector('.month-projects-summary-container')) {
+    return; // Уже добавлена
+  }
+  
+  // Проверяем кэш
+  let projects = monthProjectsSummaryCache[monthKey];
+  
+  if (!projects) {
+    // Добавляем индикатор загрузки
+    contentContainer.insertAdjacentHTML('beforeend', `
+      <div class="month-projects-summary-loading" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #eee; text-align: center; color: #666;">
+        <p style="margin: 0;">📊 Загрузка сводки за месяц...</p>
+      </div>
+    `);
+    
+    try {
+      projects = await loadMonthProjectsSummary(year, month);
+    } catch (error) {
+      console.error('Ошибка загрузки сводки за месяц:', error);
+      // Убираем индикатор загрузки
+      const loadingIndicator = contentContainer.querySelector('.month-projects-summary-loading');
+      if (loadingIndicator) {
+        loadingIndicator.remove();
+      }
+      return;
+    }
+    
+    // Убираем индикатор загрузки
+    const loadingIndicator = contentContainer.querySelector('.month-projects-summary-loading');
+    if (loadingIndicator) {
+      loadingIndicator.remove();
+    }
+  }
+  
+  // Проверяем, что контейнер все еще существует и мы все еще на календаре
+  if (!contentContainer || !contentContainer.querySelector('.dashboard-day')) {
+    return; // Уже не на календаре
+  }
+  
+  // Проверяем, не добавлена ли уже сводка (на случай параллельных загрузок)
+  if (contentContainer.querySelector('.month-projects-summary-container')) {
+    return; // Уже добавлена
+  }
+  
+  // Добавляем сводку (данные уже в кэше или только что загружены)
+  const summaryHTML = buildMonthProjectsSummaryHTML(projects);
+  contentContainer.insertAdjacentHTML('beforeend', summaryHTML);
 }
 
 // Построение HTML календаря
