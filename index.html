@@ -493,7 +493,7 @@ button:hover {
   <div class="modal-content">
     <h3>Выбери причину пропуска</h3>
     <button onclick="selectSkipReason('sick_leave')">🤧 Больничный</button>
-    <button onclick="selectSkipReason('vacation')">🏖 Отпуск</button>
+    <button onclick="selectSkipReason('vacation')">🏖 Отпуск / отгул</button>
     <button class="btn-alt" onclick="cancelSkipReason()">✖️ Отменить</button>
   </div>
 </div>
@@ -509,10 +509,10 @@ button:hover {
       <!-- Модалка об отпуске -->
   <div id="vacationDateModal" class="modal-overlay" style="display: none;">
   <div class="modal-content">
-    <h3>Укажи даты отпуска</h3>
-    <label>Начало отпуска:</label>
+    <h3>Укажи даты отпуска / отгула</h3>
+    <label>Начало:</label>
     <input type="date" id="vacationStart" />
-    <label>Конец отпуска:</label>
+    <label>Конец:</label>
     <input type="date" id="vacationEnd" />
     <button onclick="confirmVacationDates()">✅ Подтвердить</button>
     <button class="btn-alt" onclick="cancelVacationDates()">✖️ Отменить</button>
@@ -593,7 +593,7 @@ button:hover {
 <div id="addLeaveTypeModal" class="modal-overlay" style="display: none;">
   <div class="modal-content">
     <h3>Выбери тип отсутствия</h3>
-    <button onclick="handleLeaveTypeSelection('vacation')">🏖 Отпуск</button>
+    <button onclick="handleLeaveTypeSelection('vacation')">🏖 Отпуск / отгул</button>
     <button onclick="handleLeaveTypeSelection('sick_leave')">🤧 Больничный</button>
     <button class="btn-alt" onclick="cancelLeaveTypeSelection()">✖️ Отменить</button>
   </div>
@@ -692,7 +692,7 @@ if (visibleDates.length) {
 
       const addLeaveBtn = document.createElement('button');
       addLeaveBtn.className = 'btn-alt'; // ← вот эта строка
-      addLeaveBtn.textContent = '🏖 Внести отпуск / больничный';
+      addLeaveBtn.textContent = '🏖 Внести отпуск / отгул / больничный';
       addLeaveBtn.onclick = () => openAddLeaveFlow();
       result.appendChild(addLeaveBtn);
 
@@ -723,7 +723,7 @@ function handleLeaveTypeSelection(type) {
         sendLeaveWithoutDay(start_date, end_date, 'vacation')
       )
       .then(() => {
-        alert('✅ Отпуск успешно записан!');
+        alert('✅ Отпуск / отгул успешно записан!');
         loadUserData();
       })
       .catch(() => {});
