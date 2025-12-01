@@ -1606,10 +1606,10 @@ function showProjectInfo(project) {
     <h3>${project.project_name || 'Без названия'}</h3>
     <p><strong>📋 План работ по проекту в часах:</strong> ${formatHours(project.planned_hours)} ч</p>
 <p><strong>⏱ Оттрекано часов по проекту:</strong> ${formatHours(project.actual_hours)}</p>
-<p><strong>👤 Работы по проекту:</strong>
+<p><strong>👤 Работы по проекту закончены:</strong>
       <label style="display:inline-flex;align-items:center;gap:8px;">
         <input type="checkbox" id="toggleActiveStatus" ${isActive ? 'checked' : ''}>
-        ${isActive ? '(Ещё не закончены)' : '(Закончены)'}
+        ${isActive ? '(Ещё нет)' : '(Да)'}
       </label>
     </p>
     <p><strong>📁 Статус проекта:</strong> ${project.project_status || '—'}</p>
