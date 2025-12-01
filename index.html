@@ -193,6 +193,30 @@ button:hover {
   text-decoration: underline;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s ease;
+  animation: pulseLink 1s ease-out;
+  display: inline-block;
+}
+
+@keyframes pulseLink {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.project-title a:active {
+  color: #333333;
+  transform: scale(0.95);
+  opacity: 0.8;
 }
 
 .project-hours {
@@ -263,6 +287,48 @@ button:hover {
     display: flex;
     align-items: center;
     margin-bottom: 20px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    animation: highlightProjectRow 1s ease-out;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+  }
+
+  @keyframes highlightProjectRow {
+    0% {
+      background-color: rgba(0, 0, 0, 0.12);
+      border-left-color: rgba(0, 0, 0, 0.3);
+      transform: translateX(-8px);
+      opacity: 0.6;
+    }
+    30% {
+      background-color: rgba(0, 0, 0, 0.18);
+      border-left-color: rgba(0, 0, 0, 0.5);
+    }
+    60% {
+      background-color: rgba(0, 0, 0, 0.1);
+      border-left-color: rgba(0, 0, 0, 0.3);
+    }
+    100% {
+      background-color: rgba(0, 0, 0, 0.03);
+      border-left-color: rgba(0, 0, 0, 0.15);
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .project-row:active {
+    background-color: rgba(0, 0, 0, 0.08);
+    transform: scale(0.98);
+  }
+
+  .project-row:nth-child(even) {
+    animation-delay: 0.05s;
+  }
+
+  .project-row:nth-child(odd) {
+    animation-delay: 0.1s;
   }
 
   /* Колонка для отображения времени */
