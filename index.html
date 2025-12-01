@@ -1609,7 +1609,7 @@ function showProjectInfo(project) {
 <p><strong>👤 Работы по проекту закончены:</strong>
       <label style="display:inline-flex;align-items:center;gap:8px;">
         <input type="checkbox" id="toggleActiveStatus" ${isActive ? 'checked' : ''}>
-        ${isActive ? '(Да)' : '(Ещё нет)'}
+        ${isActive ? '(Ещё нет)' : '(Да)'}
       </label>
     </p>
     <p><strong>📁 Статус проекта:</strong> ${project.project_status || '—'}</p>
