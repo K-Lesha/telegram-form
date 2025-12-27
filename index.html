@@ -1420,6 +1420,14 @@ function closeConfirmation() {
       loader.textContent = 'Записываем данные...';
       form.appendChild(loader);
 
+      // Отправка уведомления менеджеру без ожидания ответа (fire-and-forget)
+      fetch('https://betters-technology.site/webhook/notify-manager-about-payload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).catch(() => {}); // Игнорируем любые ошибки
+
+      // Основной запрос на сохранение данных
       const res = await fetch('https://betters-technology.site/webhook/submit-hours', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
