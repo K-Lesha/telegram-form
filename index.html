@@ -864,7 +864,7 @@ function isMonthLocked(dateStr, now = new Date()) {
   const entryLocal = new Date(y, m - 1, d);
   // 15-е число следующего месяца
   const nextMonth = new Date(entryLocal.getFullYear(), entryLocal.getMonth() + 1, 1);
-  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 15);
+  const lockAt = new Date(nextMonth.getFullYear(), nextMonth.getMonth(), 18);
   return now >= lockAt;
 }
 function renderFormForDay(day) {
